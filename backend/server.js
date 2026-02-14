@@ -166,6 +166,9 @@ app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
 app.use(`/api/${API_VERSION}/users`, userRoutes); // New user routes
 
 // Health check endpoint with WebSocket status
+app.get('/', (req, res) => {
+  res.send('Backend is live');
+});
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
