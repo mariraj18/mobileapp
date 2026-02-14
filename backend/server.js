@@ -183,7 +183,7 @@ app.get('/health', (req, res) => {
 // WebSocket connection endpoint info
 app.get('/api/ws-info', (req, res) => {
   res.status(200).json({
-    wsUrl: `ws://${req.headers.host}`,
+    wsUrl: `${req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws'}://${req.headers.host}`,
     requiresToken: true,
   });
 });
