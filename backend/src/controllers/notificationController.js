@@ -18,7 +18,12 @@ const getNotifications = async (req, res, next) => {
     const { page, limit, offset } = getPaginationParams(req.validatedQuery);
     const { unreadOnly, type } = req.validatedQuery;
 
-    const whereClause = { user_id: userId };
+    const whereClause = {
+      user_id: userId,
+      created_at: {
+        [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) // Only last 24 hours
+      }
+    };
 
     if (unreadOnly) {
       whereClause.is_read = false;

@@ -1,0 +1,50 @@
+﻿2026-01-08 15:09:19 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:19 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:21 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:21 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:24 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:24 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:26 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:26 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:29 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:29 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:31 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:31 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:34 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:34 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:36 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:36 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:39 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:39 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:41 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:41 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:44 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:44 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:46 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:46 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:49 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:49 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:51 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:51 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:54 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:54 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:56 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:09:56 [31merror[39m: [31m[Worker] Polling error: relation "task_jobs" does not exist[39m
+2026-01-08 15:11:36 [31merror[39m: [31mError: Workspace is associated to Project using an alias. You must use the 'as' keyword to specify the alias within your include statement.[39m
+2026-01-29 06:00:00 [31merror[39m: [31mError checking task assignment notifications: Task is not associated to TaskAssignment![39m
+2026-01-29 06:09:12 [31merror[39m: [31mError: Workspace is associated to Project using an alias. You must use the 'as' keyword to specify the alias within your include statement.[39m
+2026-01-29 06:20:15 [31merror[39m: [31mError: Workspace is associated to Project using an alias. You must use the 'as' keyword to specify the alias within your include statement.[39m
+2026-01-29 06:20:55 [31merror[39m: [31mError: Workspace is associated to Project using an alias. You must use the 'as' keyword to specify the alias within your include statement.[39m
+2026-01-29 06:22:35 [31merror[39m: [31mUncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:5000[39m
+2026-01-29 06:24:27 [31merror[39m: [31mUncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:5000[39m
+2026-01-29 06:24:32 [31merror[39m: [31mUnable to start server: Unknown constraint error[39m
+2026-02-13 00:06:20 [31merror[39m: [31mUncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:5000[39m
+2026-02-13 00:06:36 [31merror[39m: [31mUncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:5000[39m
+2026-02-13 00:10:49 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 00:11:03 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 00:11:09 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 00:25:31 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 18:46:41 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 18:52:01 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 18:52:36 [31merror[39m: [31mError: null value in column "project_id" of relation "tasks" violates not-null constraint[39m
+2026-02-13 19:00:00 [31merror[39m: [31mError checking task assignment notifications: Task is not associated to TaskAssignment![39m

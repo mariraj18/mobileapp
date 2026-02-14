@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock, LogIn, Eye, EyeOff, Sparkles } from 'lucide-react-native';
+import { Mail, Lock, LogIn, Eye, EyeOff, Sparkles, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -12,33 +14,43 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const logoAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
-        tension: 30,
+        tension: 40,
         friction: 8,
         useNativeDriver: true,
       }),
-      Animated.spring(logoAnim, {
+      Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 50,
         friction: 7,
         useNativeDriver: true,
-        delay: 200,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
       }),
     ]).start();
   }, []);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -51,91 +63,119 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (result.success) {
-      router.replace('/(tabs)');
+      router.replace('/');
     } else {
       Alert.alert('Login Failed', result.message || 'Invalid credentials');
     }
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <LinearGradient
-        colors={['#F1F5F9', '#FFFFFF']}
+        colors={['#fef1e1', '#dfe8e6']}
         style={styles.gradientBackground}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <Animated.ScrollView 
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           style={{ opacity: fadeAnim }}
           contentContainerStyle={styles.scrollContent}
         >
-          <Animated.View 
+          {/* Decorative Circles */}
+          <View style={styles.decorativeContainer}>
+            <Animated.View style={[styles.decorativeCircle1, { transform: [{ rotate: spin }] }]} />
+            <Animated.View style={[styles.decorativeCircle2, { transform: [{ rotate: spin }] }]} />
+          </View>
+
+          {/* Header */}
+          <Animated.View
             style={[
               styles.header,
               {
+                opacity: fadeAnim,
                 transform: [
                   { translateY: slideAnim },
-                  { scale: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }
+                  { scale: scaleAnim }
                 ]
               }
             ]}
           >
-            <View style={styles.logoContainer}>
+            <View style={styles.logoWrapper}>
               <LinearGradient
-                colors={['#6366F1', '#8B5CF6']}
+                colors={['#fc350b', '#a0430a']}
                 style={styles.logoGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Sparkles size={32} color="#fff" />
+                <Sparkles size={32} color="#fef1e1" />
               </LinearGradient>
-              <Text style={styles.logoText}>TaskFlow</Text>
             </View>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue to your workspace</Text>
+
+            <View style={styles.brandContainer}>
+              <Text style={styles.brandName}>TaskFlow</Text>
+              <View style={styles.brandBadge}>
+                <Text style={styles.brandBadgeText}>workspace</Text>
+              </View>
+            </View>
+
+            <Text style={styles.welcomeTitle}>Welcome Back</Text>
+            <Text style={styles.welcomeSubtitle}>Sign in to continue your journey</Text>
           </Animated.View>
 
-          <Animated.View 
+          {/* Form */}
+          <Animated.View
             style={[
-              styles.form,
+              styles.formCard,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
+                transform: [
+                  { translateY: slideAnim },
+                  { scale: scaleAnim }
+                ]
               }
             ]}
           >
-            <View style={styles.inputGroup}>
-              <View style={styles.inputIcon}>
-                <Mail size={20} color="#64748B" />
+            <LinearGradient
+              colors={['#ffffff', '#fef1e1']}
+              style={styles.formGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.inputIconContainer}>
+                    <Mail size={18} color="#fc350b" />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="your@email.com"
+                    placeholderTextColor="#a0430a60"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoCorrect={false}
+                  />
+                </View>
               </View>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#94A3B8"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <View style={styles.inputIcon}>
-                <Lock size={20} color="#64748B" />
-              </View>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.passwordContainer}>
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.inputIconContainer}>
+                    <Lock size={18} color="#fc350b" />
+                  </View>
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#94A3B8"
+                    placeholder="••••••••"
+                    placeholderTextColor="#a0430a60"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -147,78 +187,82 @@ export default function LoginScreen() {
                     activeOpacity={0.7}
                   >
                     {showPassword ? (
-                      <EyeOff size={20} color="#94A3B8" />
+                      <EyeOff size={18} color="#a0430a" />
                     ) : (
-                      <Eye size={20} color="#94A3B8" />
+                      <Eye size={18} color="#a0430a" />
                     )}
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
 
-            <TouchableOpacity 
-              style={styles.forgotPassword}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-            </TouchableOpacity>
-
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{
-                  scale: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1]
-                  })
-                }]
-              }}
-            >
+              {/* Forgot Password */}
               <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
-                disabled={loading}
-                activeOpacity={0.8}
+                style={styles.forgotPassword}
+                activeOpacity={0.7}
               >
-                <LinearGradient
-                  colors={loading ? ['#94A3B8', '#CBD5E1'] : ['#6366F1', '#8B5CF6']}
-                  style={styles.loginButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  {loading ? (
-                    <Text style={styles.loginButtonText}>Logging in...</Text>
-                  ) : (
-                    <>
-                      <LogIn size={20} color="#fff" style={{ marginRight: 8 }} />
-                      <Text style={styles.loginButtonText}>Sign In</Text>
-                    </>
-                  )}
-                </LinearGradient>
+                <Text style={styles.forgotPasswordText}>Forgot password?</Text>
               </TouchableOpacity>
-            </Animated.View>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
+              {/* Login Button */}
+              <Animated.View
+                style={{
+                  transform: [{
+                    scale: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1]
+                    })
+                  }]
+                }}
+              >
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleLogin}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={loading ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                    style={styles.loginButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    {loading ? (
+                      <Text style={styles.loginButtonText}>Signing in...</Text>
+                    ) : (
+                      <>
+                        <Text style={styles.loginButtonText}>Sign In</Text>
+                        <ChevronRight size={20} color="#fef1e1" />
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
 
-            <TouchableOpacity
-              style={styles.registerButton}
-              onPress={() => router.push('/(auth)/register')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.registerButtonText}>Create new account</Text>
-            </TouchableOpacity>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-            <View style={styles.termsContainer}>
-              <Text style={styles.termsText}>
-                By signing in, you agree to our{' '}
-                <Text style={styles.termsLink}>Terms of Service</Text>{' '}
-                and <Text style={styles.termsLink}>Privacy Policy</Text>
-              </Text>
-            </View>
+              {/* Register Link */}
+              <TouchableOpacity
+                style={styles.registerButton}
+                onPress={() => router.push('/(auth)/register')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.registerButtonText}>Create New Account</Text>
+              </TouchableOpacity>
+
+              {/* Terms */}
+              <View style={styles.termsContainer}>
+                <Text style={styles.termsText}>
+                  By signing in, you agree to our{' '}
+                  <Text style={styles.termsLink}>Terms</Text> &{' '}
+                  <Text style={styles.termsLink}>Privacy Policy</Text>
+                </Text>
+              </View>
+            </LinearGradient>
           </Animated.View>
         </Animated.ScrollView>
       </LinearGradient>
@@ -235,110 +279,152 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
+  decorativeContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    overflow: 'hidden',
+  },
+  decorativeCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#fc350b20',
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    top: 100,
+    left: -60,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#a0430a20',
+  },
   header: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingTop: 80,
+    paddingBottom: 40,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  logoWrapper: {
     marginBottom: 20,
-  },
-  logoGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    shadowColor: '#6366F1',
+    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
-  logoText: {
+  logoGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+  },
+  brandName: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#a0430a',
     fontFamily: 'Inter_800ExtraBold',
   },
-  title: {
+  brandBadge: {
+    backgroundColor: '#fc350b15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
+  },
+  brandBadgeText: {
+    fontSize: 10,
+    color: '#fc350b',
+    fontFamily: 'Inter_600SemiBold',
+    textTransform: 'uppercase',
+  },
+  welcomeTitle: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginBottom: 8,
     textAlign: 'center',
   },
-  subtitle: {
+  welcomeSubtitle: {
     fontSize: 16,
-    color: '#64748B',
+    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 24,
+    opacity: 0.8,
   },
-  form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#0F172A',
+  formCard: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 16,
   },
-  inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  formGradient: {
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#fc350b20',
+  },
+  inputContainer: {
     marginBottom: 20,
   },
-  inputIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+  inputLabel: {
+    fontSize: 14,
+    color: '#a0430a',
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 8,
   },
   inputWrapper: {
-    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef1e1',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
+    paddingHorizontal: 12,
   },
-  label: {
-    fontSize: 14,
-    color: '#475569',
-    fontFamily: 'Inter_500Medium',
-    marginBottom: 6,
+  inputIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
-  },
-  passwordContainer: {
-    position: 'relative',
   },
   passwordInput: {
     paddingRight: 48,
   },
   eyeButton: {
     position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 48,
+    right: 12,
+    top: 12,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -348,14 +434,14 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#6366F1',
+    color: '#fc350b',
     fontFamily: 'Inter_500Medium',
   },
   loginButton: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 24,
-    shadowColor: '#6366F1',
+    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -365,11 +451,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    gap: 8,
   },
   loginButtonText: {
-    color: '#FFFFFF',
+    color: '#fef1e1',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
@@ -382,23 +468,25 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#fc350b30',
   },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   registerButton: {
-    padding: 18,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#fef1e1',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
   },
   registerButtonText: {
-    color: '#475569',
+    color: '#fc350b',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
@@ -408,13 +496,14 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 18,
+    opacity: 0.8,
   },
   termsLink: {
-    color: '#6366F1',
-    fontFamily: 'Inter_500Medium',
+    color: '#fc350b',
+    fontFamily: 'Inter_600SemiBold',
   },
 });

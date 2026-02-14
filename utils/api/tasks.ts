@@ -7,7 +7,7 @@ export interface Task {
   status: 'TODO' | 'IN_PROGRESS' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   due_date: string | null;
-  project_id: string;
+  project_id: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -42,6 +42,14 @@ export interface CreateTaskData {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   due_date?: string;
   assignedUserIds?: string[];
+}
+
+export interface CreateStandaloneTaskData {
+  title: string;
+  description?: string;
+  status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  due_date?: string;
 }
 
 export interface UpdateTaskData {
@@ -116,5 +124,28 @@ export const taskApi = {
       }
     });
     return apiClient.get<Task[]>(`/tasks/my-projects?${params.toString()}`);
+  },
+
+  // Standalone task operations
+  async createStandalone(data: CreateStandaloneTaskData): Promise<ApiResponse<Task> | ApiError> {
+    return apiClient.post<Task>('/tasks/standalone', data);
+  },
+
+  async getStandalone(filters: TaskFilters = {}): Promise<ApiResponse<Task[]> | ApiError> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, value.toString());
+      }
+    });
+    return apiClient.get<Task[]>(`/tasks/standalone?${params.toString()}`);
+  },
+
+  async updateStandalone(id: string, data: UpdateTaskData): Promise<ApiResponse<Task> | ApiError> {
+    return apiClient.put<Task>(`/tasks/standalone/${id}`, data);
+  },
+
+  async deleteStandalone(id: string): Promise<ApiResponse<void> | ApiError> {
+    return apiClient.delete<void>(`/tasks/standalone/${id}`);
   },
 };

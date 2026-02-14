@@ -18,6 +18,10 @@ export const memberApi = {
         return apiClient.post<WorkspaceMember>(`/workspaces/${workspaceId}/members`, { userId, role });
     },
 
+    async addMemberByCode(workspaceId: string, userCode: string, role: string): Promise<ApiResponse<WorkspaceMember> | ApiError> {
+        return apiClient.post<WorkspaceMember>(`/workspaces/${workspaceId}/members/code`, { userCode, role });
+    },
+
     async updateMemberRole(workspaceId: string, userId: string, role: string): Promise<ApiResponse<WorkspaceMember> | ApiError> {
         return apiClient.put<WorkspaceMember>(`/workspaces/${workspaceId}/members/${userId}`, { role });
     },

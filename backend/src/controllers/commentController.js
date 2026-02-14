@@ -30,7 +30,7 @@ const createComment = async (req, res, next) => {
     }
 
     // Check if project is completed
-    if (task.project.is_completed) {
+    if (task.project_id && task.project?.is_completed) {
       await transaction.rollback();
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
@@ -115,8 +115,8 @@ const createComment = async (req, res, next) => {
           taskId: task.id,
           taskTitle: task.title,
           commentId: comment.id,
-          projectId: task.project.id,
-          projectName: task.project.name,
+          projectId: task.project?.id || null,
+          projectName: task.project?.name || 'Personal Task',
         },
       });
     }
@@ -230,7 +230,7 @@ const updateComment = async (req, res, next) => {
     }
 
     // Check if project is completed
-    if (comment.task.project.is_completed) {
+    if (comment.task.project_id && comment.task.project?.is_completed) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
         message: ERROR_MESSAGES.PROJECT_COMPLETED,
@@ -296,7 +296,7 @@ const deleteComment = async (req, res, next) => {
     }
 
     // Check if project is completed
-    if (comment.task.project.is_completed) {
+    if (comment.task.project_id && comment.task.project?.is_completed) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
         message: ERROR_MESSAGES.PROJECT_COMPLETED,
@@ -304,13 +304,16 @@ const deleteComment = async (req, res, next) => {
     }
 
     // Allow deletion if user is comment creator or workspace admin
-    const workspaceMembership = await WorkspaceMember.findOne({
-      where: {
-        user_id: userId,
-        workspace_id: comment.task.project.workspace_id,
-        role: ['OWNER', 'ADMIN'],
-      },
-    });
+    let workspaceMembership = null;
+    if (comment.task.project_id) {
+      workspaceMembership = await WorkspaceMember.findOne({
+        where: {
+          user_id: userId,
+          workspace_id: comment.task.project.workspace_id,
+          role: ['OWNER', 'ADMIN'],
+        },
+      });
+    }
 
     if (comment.user_id !== userId && !workspaceMembership) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({

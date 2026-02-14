@@ -16,7 +16,7 @@ router.put('/:id', authenticate, validateParams(uuidParam), isWorkspaceOwner, va
 
 router.delete('/:id', authenticate, validateParams(uuidParam), isWorkspaceOwner, workspaceController.deleteWorkspace);
 
-router.get('/:id/members', authenticate, validateParams(uuidParam), isWorkspaceMember, workspaceController.getWorkspaceMembers);
+router.get('/:id/members', authenticate, validateParams(uuidParam), isWorkspaceAdmin, workspaceController.getWorkspaceMembers);
 
 router.post('/:id/members', authenticate, validateParams(uuidParam), isWorkspaceAdmin, validate(workspaceSchemas.addMember), workspaceController.addWorkspaceMember);
 

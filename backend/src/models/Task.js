@@ -48,7 +48,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       project_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'projects',
           key: 'id',

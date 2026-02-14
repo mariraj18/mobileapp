@@ -3,7 +3,7 @@ import { apiClient, ApiResponse, ApiError } from './client';
 export interface Notification {
     id: string;
     user_id: string;
-    type: 'ASSIGNMENT' | 'DUE_DATE' | 'MENTION' | 'SYSTEM';
+    type: 'DUE_DATE' | 'PRIORITY' | 'ASSIGNMENT' | 'COMMENT' | 'PROJECT_INVITE' | 'TASK_ASSIGNMENT' | 'PROJECT_COMPLETED';
     message: string;
     read: boolean;
     data?: any;

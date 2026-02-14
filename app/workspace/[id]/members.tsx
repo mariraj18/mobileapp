@@ -1,313 +1,678 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, Animated } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { memberApi, WorkspaceMember } from '@/utils/api/members';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserPlus, X, Trash2, Shield } from 'lucide-react-native';
+import { 
+  UserPlus, 
+  X, 
+  Trash2, 
+  Shield, 
+  Mail, 
+  User, 
+  Crown, 
+  Award, 
+  Star, 
+  ChevronRight, 
+  Search,
+  MoreVertical
+} from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 export default function WorkspaceMembersScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
-    const [members, setMembers] = useState<WorkspaceMember[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState('');
-    const [inviting, setInviting] = useState(false);
-    const { user } = useAuth();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { user } = useAuth();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (id) {
-            loadMembers();
-        }
-    }, [id]);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
-    const loadMembers = async () => {
-        setLoading(true);
-        const response = await memberApi.getMembers(id!);
-        if (response.success) {
-            setMembers(response.data);
-        }
-        setLoading(false);
-    };
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'OWNER': return '#fc350b';
+      case 'ADMIN': return '#a0430a';
+      case 'MEMBER': return '#f89b7a';
+      default: return '#dfe8e6';
+    }
+  };
 
-    const handleInvite = async () => {
-        if (!inviteEmail.trim()) {
-            Alert.alert('Error', 'Please enter a user ID (Email lookup not implemented yet)');
-            return;
-        }
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'OWNER': return <Crown size={16} color="#fc350b" />;
+      case 'ADMIN': return <Award size={16} color="#a0430a" />;
+      case 'MEMBER': return <Star size={16} color="#f89b7a" />;
+      default: return <User size={16} color="#dfe8e6" />;
+    }
+  };
 
-        setInviting(true);
-        // Note: Backend requires userId. In a real app, we'd lookup by email first.
-        // For now, we assume the user enters a valid User ID for testing.
-        const response = await memberApi.addMember(id!, inviteEmail, 'MEMBER');
-        setInviting(false);
+  useEffect(() => {
+    if (id) {
+      loadMembers();
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 30,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [id]);
 
-        if (response.success) {
-            setInviteEmail('');
-            setModalVisible(false);
-            loadMembers();
-            Alert.alert('Success', 'Member added successfully');
-        } else {
-            Alert.alert('Error', response.message || 'Failed to add member');
-        }
-    };
+  const loadMembers = async () => {
+    setLoading(true);
+    const response = await memberApi.getMembers(id!);
+    if (response.success) {
+      setMembers(response.data);
+      const currentUser = response.data.find(m => m.userId === user?.id);
+      if (currentUser) {
+        setUserRole(currentUser.role);
+      }
+    } else if (response.status === 403) {
+      Alert.alert('Access Denied', 'Only workspace admins and owners can view members.');
+      router.back();
+    }
+    setLoading(false);
+  };
 
-    const handleRemoveMember = (member: WorkspaceMember) => {
-        Alert.alert('Remove Member', `Are you sure you want to remove ${member.name}?`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Remove',
-                style: 'destructive',
-                onPress: async () => {
-                    const response = await memberApi.removeMember(id!, member.userId);
-                    if (response.success) {
-                        loadMembers();
-                    } else {
-                        Alert.alert('Error', response.message || 'Failed to remove member');
-                    }
-                }
-            }
-        ]);
-    };
-
-    const renderMember = ({ item }: { item: WorkspaceMember }) => (
-        <View style={styles.card}>
-            <View style={styles.memberInfo}>
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View>
-                    <Text style={styles.memberName}>{item.name}</Text>
-                    <Text style={styles.memberEmail}>{item.email}</Text>
-                    <View style={styles.roleContainer}>
-                        <Shield size={12} color="#666" style={{ marginRight: 4 }} />
-                        <Text style={styles.roleText}>{item.role}</Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Only allow removing others if not self */}
-            {item.userId !== user?.id && (
-                <TouchableOpacity onPress={() => handleRemoveMember(item)} style={styles.removeButton}>
-                    <Trash2 size={20} color="#FF3B30" />
-                </TouchableOpacity>
-            )}
-        </View>
-    );
-
-    if (loading) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#007AFF" />
-            </View>
-        );
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) {
+      Alert.alert('Error', 'Please enter a user ID (Email lookup not implemented yet)');
+      return;
     }
 
-    return (
-        <View style={styles.container}>
-            <Stack.Screen options={{ title: 'Workspace Members', headerBackTitle: 'Back' }} />
+    setInviting(true);
+    const response = await memberApi.addMember(id!, inviteEmail, 'MEMBER');
+    setInviting(false);
 
-            <FlatList
-                data={members}
-                renderItem={renderMember}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.list}
-            />
+    if (response.success) {
+      setInviteEmail('');
+      setModalVisible(false);
+      loadMembers();
+      Alert.alert('Success', 'Member added successfully');
+    } else {
+      Alert.alert('Error', response.message || 'Failed to add member');
+    }
+  };
 
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => setModalVisible(true)}
-            >
-                <UserPlus color="#fff" size={24} />
-            </TouchableOpacity>
+  const handleRemoveMember = (member: WorkspaceMember) => {
+    Alert.alert('Remove Member', `Are you sure you want to remove ${member.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          const response = await memberApi.removeMember(id!, member.userId);
+          if (response.success) {
+            loadMembers();
+          } else {
+            Alert.alert('Error', response.message || 'Failed to remove member');
+          }
+        }
+      }
+    ]);
+  };
 
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add Member</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <X color="#666" size={24} />
-                            </TouchableOpacity>
-                        </View>
+  const filteredMembers = members.filter(member => 
+    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>User ID (Development Mode)</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={inviteEmail}
-                                onChangeText={setInviteEmail}
-                                placeholder="Enter User ID"
-                                autoCapitalize="none"
-                            />
-                            <Text style={styles.hint}>In production, this would be an email lookup.</Text>
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.createButton}
-                            onPress={handleInvite}
-                            disabled={inviting}
-                        >
-                            {inviting ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.createButtonText}>Add Member</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+  const renderMember = ({ item, index }: { item: WorkspaceMember; index: number }) => (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{
+          translateY: fadeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [30 * (index + 1), 0]
+          })
+        }],
+      }}
+    >
+      <LinearGradient
+        colors={['#ffffff', '#fef1e1']}
+        style={styles.card}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.memberInfo}>
+          <LinearGradient
+            colors={[getRoleColor(item.role || 'MEMBER'), getRoleColor(item.role || 'MEMBER') + '80']}
+            style={styles.avatar}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+          </LinearGradient>
+          
+          <View style={styles.memberDetails}>
+            <View style={styles.nameContainer}>
+              <Text style={styles.memberName}>{item.name}</Text>
+              {item.userId === user?.id && (
+                <View style={[styles.youBadge, { backgroundColor: '#fc350b15' }]}>
+                  <Text style={[styles.youText, { color: '#fc350b' }]}>You</Text>
                 </View>
-            </Modal>
+              )}
+            </View>
+            <Text style={styles.memberEmail}>{item.email}</Text>
+            
+            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(item.role || 'MEMBER') + '15' }]}>
+              {getRoleIcon(item.role || 'MEMBER')}
+              <Text style={[styles.roleText, { color: getRoleColor(item.role || 'MEMBER') }]}>
+                {item.role || 'MEMBER'}
+              </Text>
+            </View>
+          </View>
         </View>
+
+        {item.userId !== user?.id && (
+          (userRole === 'OWNER') ||
+          (userRole === 'ADMIN' && item.role === 'MEMBER')
+        ) && (
+          <TouchableOpacity 
+            onPress={() => handleRemoveMember(item)} 
+            style={[styles.removeButton, { backgroundColor: '#fc350b15' }]}
+          >
+            <Trash2 size={18} color="#fc350b" />
+          </TouchableOpacity>
+        )}
+      </LinearGradient>
+    </Animated.View>
+  );
+
+  if (loading) {
+    return (
+      <LinearGradient colors={['#fef1e1', '#ffffff']} style={styles.centered}>
+        <ActivityIndicator size="large" color="#fc350b" />
+      </LinearGradient>
     );
+  }
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        style={StyleSheet.absoluteFill}
+        locations={[0, 0.5, 1]}
+      />
+
+      <Stack.Screen
+        options={{
+          title: 'Workspace Members',
+          headerBackTitle: 'Back',
+          headerTintColor: '#fc350b',
+          headerStyle: {
+            backgroundColor: '#fef1e1',
+          },
+          headerTitleStyle: {
+            color: '#a0430a',
+            fontWeight: '600',
+          },
+        }}
+      />
+
+      {/* Search Bar */}
+      <Animated.View style={[styles.searchContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <LinearGradient
+          colors={['#ffffff', '#fef1e1']}
+          style={styles.searchBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Search size={18} color="#fc350b" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search members..."
+            placeholderTextColor="#a0430a60"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </LinearGradient>
+      </Animated.View>
+
+      <FlatList
+        data={filteredMembers}
+        renderItem={renderMember}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <Animated.View style={[styles.statsHeader, { opacity: fadeAnim }]}>
+            <LinearGradient
+              colors={['#fc350b15', '#a0430a15']}
+              style={styles.statsBadge}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <User size={16} color="#fc350b" />
+              <Text style={styles.statsText}>{members.length} Members</Text>
+            </LinearGradient>
+          </Animated.View>
+        }
+        ListEmptyComponent={
+          <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
+            <LinearGradient
+              colors={['#ffffff', '#fef1e1']}
+              style={styles.emptyIllustration}
+            >
+              <UserPlus size={48} color="#fc350b" />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>No members found</Text>
+            <Text style={styles.emptySubtitle}>
+              Try adjusting your search or invite new members
+            </Text>
+          </Animated.View>
+        }
+      />
+
+      {(userRole === 'OWNER' || userRole === 'ADMIN') && (
+        <Animated.View
+          style={[
+            styles.fabContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{
+                scale: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.5, 1]
+                })
+              }]
+            }
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => setModalVisible(true)}
+          >
+            <LinearGradient
+              colors={['#fc350b', '#a0430a']}
+              style={styles.fabGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <UserPlus color="#fef1e1" size={24} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* Invite Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <BlurView intensity={20} style={styles.modalOverlay}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                transform: [{
+                  scale: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.9, 1]
+                  })
+                }]
+              }
+            ]}
+          >
+            <LinearGradient
+              colors={['#ffffff', '#fef1e1']}
+              style={styles.modalGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Member</Text>
+                <TouchableOpacity 
+                  style={[styles.closeButton, { backgroundColor: '#fc350b15' }]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <X size={20} color="#fc350b" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Mail size={18} color="#fc350b" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={inviteEmail}
+                  onChangeText={setInviteEmail}
+                  placeholder="Enter User ID"
+                  placeholderTextColor="#a0430a60"
+                  autoCapitalize="none"
+                />
+              </View>
+              
+              <Text style={styles.hint}>
+                In production, this would be an email lookup.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={handleInvite}
+                disabled={inviting}
+              >
+                <LinearGradient
+                  colors={inviting ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                  style={styles.createButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  {inviting ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <>
+                      <UserPlus size={18} color="#fef1e1" />
+                      <Text style={styles.createButtonText}>Add Member</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
+        </BlurView>
+      </Modal>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f5f5f5',
-    },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    list: {
-        padding: 20,
-    },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    memberInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#E3F2FD',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    avatarText: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#007AFF',
-    },
-    memberName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 2,
-    },
-    memberEmail: {
-        fontSize: 12,
-        color: '#666',
-        marginBottom: 4,
-    },
-    roleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f0f0f0',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    roleText: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: '#666',
-    },
-    removeButton: {
-        padding: 8,
-    },
-    fab: {
-        position: 'absolute',
-        bottom: 30,
-        right: 30,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#007AFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        padding: 20,
-    },
-    modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 20,
-        elevation: 5,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#333',
-    },
-    inputContainer: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: '#f5f5f5',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        color: '#333',
-    },
-    hint: {
-        fontSize: 12,
-        color: '#999',
-        marginTop: 4,
-    },
-    createButton: {
-        backgroundColor: '#007AFF',
-        borderRadius: 8,
-        padding: 16,
-        alignItems: 'center',
-    },
-    createButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
+  container: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#a0430a',
+    fontFamily: 'Inter_400Regular',
+    padding: 0,
+  },
+  statsHeader: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  statsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 30,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
+  },
+  statsText: {
+    fontSize: 13,
+    color: '#a0430a',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  list: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#fc350b20',
+    shadowColor: '#fc350b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    shadowColor: '#fc350b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fef1e1',
+    fontFamily: 'Inter_700Bold',
+  },
+  memberDetails: {
+    flex: 1,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  memberName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#a0430a',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  youBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  youText: {
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  memberEmail: {
+    fontSize: 12,
+    color: '#fc350b',
+    fontFamily: 'Inter_400Regular',
+    marginBottom: 6,
+    opacity: 0.8,
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  roleText: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  removeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: '#fc350b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyIllustration: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#fc350b30',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#a0430a',
+    fontFamily: 'Inter_600SemiBold',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#fc350b',
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#a0430a',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  modalGradient: {
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#a0430a',
+    fontFamily: 'Inter_700Bold',
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef1e1',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fc350b30',
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#a0430a',
+    fontFamily: 'Inter_400Regular',
+  },
+  hint: {
+    fontSize: 12,
+    color: '#fc350b',
+    fontFamily: 'Inter_400Regular',
+    marginBottom: 20,
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  createButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  createButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  createButtonText: {
+    color: '#fef1e1',
+    fontSize: 15,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
 });

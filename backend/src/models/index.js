@@ -29,12 +29,6 @@ fs.readdirSync(__dirname)
     db[model.name] = model;
   });
 
-Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
-});
-
 // Define associations
 db.User.associate = function (models) {
   models.User.hasMany(models.WorkspaceMember, { foreignKey: 'user_id', as: 'workspaceMemberships' });

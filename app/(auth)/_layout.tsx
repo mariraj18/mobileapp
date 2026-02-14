@@ -5,11 +5,12 @@ import { StatusBar } from 'expo-status-bar';
 export default function AuthLayout() {
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <Stack 
         screenOptions={{ 
           headerShown: false,
           contentStyle: styles.stackContent,
+          animation: 'fade',
         }}
       >
         <Stack.Screen name="login" />
@@ -22,7 +23,7 @@ export default function AuthLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#fef1e1',
   },
   stackContent: {
     backgroundColor: 'transparent',

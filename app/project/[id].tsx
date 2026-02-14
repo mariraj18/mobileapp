@@ -3,25 +3,29 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { projectApi, Project } from '@/utils/api/projects';
 import { taskApi, Task, CreateTaskData } from '@/utils/api/tasks';
-import { Plus, X, Calendar, CheckCircle, Clock, AlertCircle, Target, TrendingUp } from 'lucide-react-native';
+import { Plus, X, Calendar, CheckCircle, Clock, AlertCircle, Target, TrendingUp, Users, Filter, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 export default function ProjectDetailsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    
+
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
-    
+    const [filterModalVisible, setFilterModalVisible] = useState(false);
+    const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'TODO' | 'IN_PROGRESS' | 'DONE'>('ALL');
+
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
     const [creating, setCreating] = useState(false);
-    
+
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
+    const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
     useEffect(() => {
         if (id) {
@@ -29,12 +33,18 @@ export default function ProjectDetailsScreen() {
             Animated.parallel([
                 Animated.timing(fadeAnim, {
                     toValue: 1,
-                    duration: 500,
+                    duration: 600,
                     useNativeDriver: true,
                 }),
                 Animated.spring(slideAnim, {
                     toValue: 0,
-                    tension: 30,
+                    tension: 40,
+                    friction: 8,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    tension: 40,
                     friction: 8,
                     useNativeDriver: true,
                 }),
@@ -92,19 +102,23 @@ export default function ProjectDetailsScreen() {
         switch (status) {
             case 'DONE': return '#10B981';
             case 'IN_PROGRESS': return '#3B82F6';
-            case 'TODO': return '#F59E0B';
-            default: return '#94A3B8';
+            case 'TODO': return '#fc350b';
+            default: return '#dfe8e6';
         }
     };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'HIGH': return '#EF4444';
-            case 'URGENT': return '#DC2626';
-            case 'MEDIUM': return '#F59E0B';
-            case 'LOW': return '#6B7280';
-            default: return '#94A3B8';
+            case 'HIGH': return '#fc350b';
+            case 'MEDIUM': return '#a0430a';
+            case 'LOW': return '#f89b7a';
+            default: return '#dfe8e6';
         }
+    };
+
+    const getFilteredTasks = () => {
+        if (selectedFilter === 'ALL') return tasks;
+        return tasks.filter(task => task.status === selectedFilter);
     };
 
     const getStatusCount = (status: string) => {
@@ -128,47 +142,62 @@ export default function ProjectDetailsScreen() {
                 onPress={() => router.push(`/task/${item.id}`)}
                 activeOpacity={0.7}
             >
-                <View style={[styles.statusStrip, { backgroundColor: getStatusColor(item.status) }]} />
-                <View style={styles.cardContent}>
-                    <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                        <View style={[
-                            styles.priorityBadge,
-                            { backgroundColor: getPriorityColor(item.priority) + '15' }
-                        ]}>
-                            <Text style={[
-                                styles.priorityText,
-                                { color: getPriorityColor(item.priority) }
+                <LinearGradient
+                    colors={['#ffffff', '#fef1e1']}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]} />
+                    
+                    <View style={styles.cardContent}>
+                        <View style={styles.cardHeader}>
+                            <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                            <View style={[
+                                styles.priorityBadge,
+                                { backgroundColor: getPriorityColor(item.priority) + '15' }
                             ]}>
-                                {item.priority}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {item.description ? (
-                        <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
-                    ) : null}
-
-                    <View style={styles.cardFooter}>
-                        <View style={styles.metaItem}>
-                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-                            <Text style={styles.metaText}>
-                                {item.status.replace('_', ' ')}
-                            </Text>
-                        </View>
-                        {item.due_date && (
-                            <View style={styles.metaItem}>
-                                <Calendar size={12} color="#94A3B8" style={{ marginRight: 4 }} />
-                                <Text style={styles.metaText}>
-                                    {new Date(item.due_date).toLocaleDateString('en-US', { 
-                                        month: 'short', 
-                                        day: 'numeric' 
-                                    })}
+                                <Text style={[
+                                    styles.priorityText,
+                                    { color: getPriorityColor(item.priority) }
+                                ]}>
+                                    {item.priority}
                                 </Text>
                             </View>
-                        )}
+                        </View>
+
+                        {item.description ? (
+                            <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
+                        ) : null}
+
+                        <View style={styles.cardFooter}>
+                            <View style={styles.metaItem}>
+                                <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+                                <Text style={styles.metaText}>
+                                    {item.status.replace('_', ' ')}
+                                </Text>
+                            </View>
+                            
+                            {item.due_date && (
+                                <View style={styles.metaItem}>
+                                    <Calendar size={12} color="#a0430a" />
+                                    <Text style={styles.metaText}>
+                                        {new Date(item.due_date).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric'
+                                        })}
+                                    </Text>
+                                </View>
+                            )}
+
+                            <View style={styles.avatarGroup}>
+                                <View style={[styles.avatar, { backgroundColor: '#fc350b' }]}>
+                                    <Text style={styles.avatarText}>JD</Text>
+                                </View>
+                            </View>
+                        </View>
                     </View>
-                </View>
+                </LinearGradient>
             </TouchableOpacity>
         </Animated.View>
     );
@@ -176,7 +205,11 @@ export default function ProjectDetailsScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366F1" />
+                <LinearGradient
+                    colors={['#fef1e1', '#ffffff']}
+                    style={StyleSheet.absoluteFill}
+                />
+                <ActivityIndicator size="large" color="#fc350b" />
             </View>
         );
     }
@@ -192,220 +225,305 @@ export default function ProjectDetailsScreen() {
     const todoCount = getStatusCount('TODO');
     const inProgressCount = getStatusCount('IN_PROGRESS');
     const doneCount = getStatusCount('DONE');
+    const filteredTasks = getFilteredTasks();
 
     return (
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        <View style={styles.container}>
             <LinearGradient
-                colors={['#F1F5F9', '#FFFFFF']}
-                style={styles.gradientBackground}
-            >
-                <Stack.Screen 
-                    options={{ 
-                        title: project.name,
-                        headerBackTitle: 'Back',
-                        headerTintColor: '#6366F1',
-                    }} 
-                />
+                colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+                style={StyleSheet.absoluteFill}
+                locations={[0, 0.5, 1]}
+            />
 
-                <Animated.View 
-                    style={[
-                        styles.header,
-                        {
-                            transform: [{ translateY: slideAnim }]
-                        }
-                    ]}
-                >
-                    <LinearGradient
-                        colors={['#FFFFFF', '#F8FAFC']}
-                        style={styles.headerGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    >
-                        <Text style={styles.projectName}>{project.name}</Text>
-                        {project.description && (
-                            <Text style={styles.projectDescription}>{project.description}</Text>
-                        )}
-                        
-                        <View style={styles.statsContainer}>
-                            <View style={styles.statCard}>
-                                <Target size={20} color="#F59E0B" />
-                                <Text style={styles.statValue}>{todoCount}</Text>
-                                <Text style={styles.statLabel}>To Do</Text>
-                            </View>
-                            <View style={styles.statCard}>
-                                <Clock size={20} color="#3B82F6" />
-                                <Text style={styles.statValue}>{inProgressCount}</Text>
-                                <Text style={styles.statLabel}>In Progress</Text>
-                            </View>
-                            <View style={styles.statCard}>
-                                <CheckCircle size={20} color="#10B981" />
-                                <Text style={styles.statValue}>{doneCount}</Text>
-                                <Text style={styles.statLabel}>Done</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </Animated.View>
+            <Stack.Screen
+                options={{
+                    title: project.name,
+                    headerBackTitle: 'Back',
+                    headerTintColor: '#fc350b',
+                    headerStyle: {
+                        backgroundColor: 'transparent',
+                    },
+                    headerTransparent: true,
+                }}
+            />
 
-                <FlatList
-                    data={tasks}
-                    renderItem={renderTask}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.list}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <Animated.View 
-                            style={[
-                                styles.emptyState,
-                                { opacity: fadeAnim }
-                            ]}
-                        >
-                            <View style={styles.emptyIllustration}>
-                                <Target size={48} color="#CBD5E1" />
-                            </View>
-                            <Text style={styles.emptyTitle}>No tasks yet</Text>
-                            <Text style={styles.emptySubtitle}>
-                                Create your first task to get started
-                            </Text>
-                        </Animated.View>
+            <Animated.View
+                style={[
+                    styles.header,
+                    {
+                        opacity: fadeAnim,
+                        transform: [{ translateY: slideAnim }]
                     }
-                />
-
-                <Animated.View
-                    style={[
-                        styles.fabContainer,
-                        {
-                            transform: [{
-                                scale: fadeAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0.5, 1]
-                                })
-                            }]
-                        }
-                    ]}
+                ]}
+            >
+                <LinearGradient
+                    colors={['#ffffff', '#fef1e1']}
+                    style={styles.headerGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
                 >
-                    <TouchableOpacity
-                        style={styles.fab}
-                        onPress={() => setModalVisible(true)}
-                        activeOpacity={0.8}
+                    <View style={styles.headerTop}>
+                        <Text style={styles.projectName}>{project.name}</Text>
+                        <TouchableOpacity 
+                            style={styles.filterButton}
+                            onPress={() => setFilterModalVisible(true)}
+                        >
+                            <Filter size={18} color="#fc350b" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    {project.description && (
+                        <Text style={styles.projectDescription}>{project.description}</Text>
+                    )}
+
+                    <View style={styles.statsContainer}>
+                        <View style={[styles.statCard, { backgroundColor: '#fc350b15' }]}>
+                            <Target size={20} color="#fc350b" />
+                            <Text style={styles.statValue}>{todoCount}</Text>
+                            <Text style={styles.statLabel}>To Do</Text>
+                        </View>
+                        <View style={[styles.statCard, { backgroundColor: '#3B82F615' }]}>
+                            <Clock size={20} color="#3B82F6" />
+                            <Text style={styles.statValue}>{inProgressCount}</Text>
+                            <Text style={styles.statLabel}>In Progress</Text>
+                        </View>
+                        <View style={[styles.statCard, { backgroundColor: '#10B98115' }]}>
+                            <CheckCircle size={20} color="#10B981" />
+                            <Text style={styles.statValue}>{doneCount}</Text>
+                            <Text style={styles.statLabel}>Done</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.progressBar}>
+                        <View style={[styles.progressFill, { width: `${(doneCount / (tasks.length || 1)) * 100}%` }]} />
+                    </View>
+                </LinearGradient>
+            </Animated.View>
+
+            <FlatList
+                data={filteredTasks}
+                renderItem={renderTask}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                    <View style={styles.listHeader}>
+                        <Text style={styles.listTitle}>
+                            Tasks {selectedFilter !== 'ALL' && `- ${selectedFilter.replace('_', ' ')}`}
+                        </Text>
+                        <Text style={styles.listCount}>{filteredTasks.length}</Text>
+                    </View>
+                }
+                ListEmptyComponent={
+                    <Animated.View
+                        style={[
+                            styles.emptyState,
+                            { opacity: fadeAnim }
+                        ]}
                     >
                         <LinearGradient
-                            colors={['#6366F1', '#8B5CF6']}
-                            style={styles.fabGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
+                            colors={['#ffffff', '#fef1e1']}
+                            style={styles.emptyIllustration}
                         >
-                            <Plus color="#fff" size={24} />
+                            <Target size={48} color="#fc350b" />
                         </LinearGradient>
-                    </TouchableOpacity>
-                </Animated.View>
+                        <Text style={styles.emptyTitle}>No tasks yet</Text>
+                        <Text style={styles.emptySubtitle}>
+                            Create your first task to get started
+                        </Text>
+                    </Animated.View>
+                }
+            />
 
-                <Modal
-                    animationType="fade"
-                    transparent={true}
-                    visible={modalVisible}
-                    onRequestClose={() => setModalVisible(false)}
+            <Animated.View
+                style={[
+                    styles.fabContainer,
+                    {
+                        transform: [{
+                            scale: fadeAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.5, 1]
+                            })
+                        }]
+                    }
+                ]}
+            >
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => setModalVisible(true)}
+                    activeOpacity={0.8}
                 >
-                    <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
-                        <Animated.View 
-                            style={[
-                                styles.modalContent,
-                                {
-                                    transform: [{
-                                        scale: fadeAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.9, 1]
-                                        })
-                                    }]
-                                }
-                            ]}
-                        >
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>New Task</Text>
-                                <TouchableOpacity 
-                                    style={styles.closeButton}
-                                    onPress={() => setModalVisible(false)}
-                                >
-                                    <X size={20} color="#64748B" />
-                                </TouchableOpacity>
-                            </View>
+                    <LinearGradient
+                        colors={['#fc350b', '#a0430a']}
+                        style={styles.fabGradient}
+                    >
+                        <Plus color="#fef1e1" size={24} />
+                    </LinearGradient>
+                </TouchableOpacity>
+            </Animated.View>
 
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Title</Text>
+            {/* Create Task Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <BlurView intensity={20} style={styles.modalOverlay}>
+                    <Animated.View
+                        style={[
+                            styles.modalContent,
+                            {
+                                transform: [{
+                                    scale: scaleAnim
+                                }]
+                            }
+                        ]}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>New Task</Text>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setModalVisible(false)}
+                            >
+                                <X size={20} color="#a0430a" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Title</Text>
+                            <View style={styles.inputWrapper}>
                                 <TextInput
                                     style={styles.input}
                                     value={newTaskTitle}
                                     onChangeText={setNewTaskTitle}
                                     placeholder="What needs to be done?"
-                                    placeholderTextColor="#94A3B8"
+                                    placeholderTextColor="#a0430a60"
                                     autoFocus
                                 />
                             </View>
+                        </View>
 
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Description</Text>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Description</Text>
+                            <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                                 <TextInput
                                     style={[styles.input, styles.textArea]}
                                     value={newTaskDesc}
                                     onChangeText={setNewTaskDesc}
                                     placeholder="Add details..."
-                                    placeholderTextColor="#94A3B8"
+                                    placeholderTextColor="#a0430a60"
                                     multiline
                                     numberOfLines={3}
                                 />
                             </View>
+                        </View>
 
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Priority</Text>
-                                <View style={styles.prioritySelector}>
-                                    {(['LOW', 'MEDIUM', 'HIGH'] as const).map((p) => (
-                                        <TouchableOpacity
-                                            key={p}
-                                            style={[
-                                                styles.priorityOption,
-                                                newTaskPriority === p && styles.priorityOptionSelected,
-                                                newTaskPriority === p && { 
-                                                    borderColor: getPriorityColor(p),
-                                                    backgroundColor: getPriorityColor(p) + '15'
-                                                }
-                                            ]}
-                                            onPress={() => setNewTaskPriority(p)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Text style={[
-                                                styles.priorityOptionText,
-                                                newTaskPriority === p && { color: getPriorityColor(p) }
-                                            ]}>
-                                                {p}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Priority</Text>
+                            <View style={styles.prioritySelector}>
+                                {(['LOW', 'MEDIUM', 'HIGH'] as const).map((p) => (
+                                    <TouchableOpacity
+                                        key={p}
+                                        style={[
+                                            styles.priorityOption,
+                                            newTaskPriority === p && {
+                                                backgroundColor: getPriorityColor(p),
+                                                borderColor: getPriorityColor(p)
+                                            }
+                                        ]}
+                                        onPress={() => setNewTaskPriority(p)}
+                                    >
+                                        <Text style={[
+                                            styles.priorityOptionText,
+                                            newTaskPriority === p && { color: '#fef1e1' }
+                                        ]}>
+                                            {p}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
+                        </View>
 
-                            <TouchableOpacity
-                                style={styles.createButton}
-                                onPress={handleCreateTask}
-                                disabled={creating}
-                                activeOpacity={0.7}
+                        <TouchableOpacity
+                            style={styles.createButton}
+                            onPress={handleCreateTask}
+                            disabled={creating}
+                        >
+                            <LinearGradient
+                                colors={creating ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                                style={styles.createButtonGradient}
                             >
-                                <LinearGradient
-                                    colors={creating ? ['#94A3B8', '#CBD5E1'] : ['#6366F1', '#8B5CF6']}
-                                    style={styles.createButtonGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    {creating ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.createButtonText}>Create Task</Text>
-                                    )}
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        </Animated.View>
+                                {creating ? (
+                                    <ActivityIndicator color="#ffffff" />
+                                ) : (
+                                    <Text style={styles.createButtonText}>Create Task</Text>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
                     </Animated.View>
-                </Modal>
-            </LinearGradient>
-        </Animated.View>
+                </BlurView>
+            </Modal>
+
+            {/* Filter Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={filterModalVisible}
+                onRequestClose={() => setFilterModalVisible(false)}
+            >
+                <BlurView intensity={20} style={styles.modalOverlay}>
+                    <Animated.View
+                        style={[
+                            styles.modalContent,
+                            styles.filterModal,
+                            {
+                                transform: [{
+                                    scale: scaleAnim
+                                }]
+                            }
+                        ]}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Filter Tasks</Text>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setFilterModalVisible(false)}
+                            >
+                                <X size={20} color="#a0430a" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {(['ALL', 'TODO', 'IN_PROGRESS', 'DONE'] as const).map((filter) => (
+                            <TouchableOpacity
+                                key={filter}
+                                style={[
+                                    styles.filterOption,
+                                    selectedFilter === filter && styles.filterOptionSelected
+                                ]}
+                                onPress={() => {
+                                    setSelectedFilter(filter);
+                                    setFilterModalVisible(false);
+                                }}
+                            >
+                                <Text style={[
+                                    styles.filterOptionText,
+                                    selectedFilter === filter && styles.filterOptionTextSelected
+                                ]}>
+                                    {filter === 'ALL' ? 'All Tasks' : filter.replace('_', ' ')}
+                                </Text>
+                                <Text style={styles.filterCount}>
+                                    {filter === 'ALL' ? tasks.length : getStatusCount(filter)}
+                                </Text>
+                                {selectedFilter === filter && (
+                                    <ChevronRight size={18} color="#fc350b" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </Animated.View>
+                </BlurView>
+            </Modal>
+        </View>
     );
 }
 
@@ -413,14 +531,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    gradientBackground: {
-        flex: 1,
-    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
     },
     centered: {
         flex: 1,
@@ -428,95 +542,148 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        paddingHorizontal: 24,
-        paddingTop: 20,
-        paddingBottom: 24,
+        paddingHorizontal: 20,
+        paddingTop: 100,
+        paddingBottom: 20,
     },
     headerGradient: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
+        borderRadius: 24,
         padding: 20,
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-        elevation: 8,
+        borderWidth: 1,
+        borderColor: '#fc350b20',
+        shadowColor: '#a0430a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     projectName: {
         fontSize: 24,
         fontWeight: '700',
-        color: '#0F172A',
+        color: '#a0430a',
         fontFamily: 'Inter_700Bold',
-        marginBottom: 8,
+        flex: 1,
+    },
+    filterButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#fef1e1',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fc350b30',
     },
     projectDescription: {
         fontSize: 14,
-        color: '#64748B',
+        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
         lineHeight: 20,
         marginBottom: 20,
+        opacity: 0.8,
     },
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginBottom: 20,
     },
     statCard: {
         flex: 1,
         alignItems: 'center',
         padding: 12,
-        borderRadius: 12,
-        backgroundColor: '#F8FAFC',
-        marginHorizontal: 6,
+        borderRadius: 16,
+        marginHorizontal: 4,
     },
     statValue: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#0F172A',
+        color: '#a0430a',
         fontFamily: 'Inter_700Bold',
         marginVertical: 8,
     },
     statLabel: {
         fontSize: 12,
-        color: '#64748B',
+        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
-        textAlign: 'center',
+        opacity: 0.8,
+    },
+    progressBar: {
+        height: 6,
+        backgroundColor: '#fef1e1',
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#fc350b',
+        borderRadius: 3,
     },
     list: {
         padding: 20,
         paddingBottom: 100,
     },
-    card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        marginBottom: 16,
+    listHeader: {
         flexDirection: 'row',
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    listTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#a0430a',
+        fontFamily: 'Inter_600SemiBold',
+    },
+    listCount: {
+        fontSize: 14,
+        color: '#fc350b',
+        fontFamily: 'Inter_600SemiBold',
+        backgroundColor: '#fc350b15',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    card: {
+        marginBottom: 12,
+        borderRadius: 20,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: '#fc350b20',
+        shadowColor: '#a0430a',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
-    statusStrip: {
+    cardGradient: {
+        flexDirection: 'row',
+    },
+    priorityIndicator: {
         width: 6,
-        height: '100%',
+        height: 'auto',
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 20,
     },
     cardContent: {
         flex: 1,
-        padding: 20,
+        padding: 16,
     },
     cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1E293B',
+        color: '#a0430a',
         fontFamily: 'Inter_600SemiBold',
         flex: 1,
         marginRight: 12,
@@ -533,34 +700,54 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     cardDesc: {
-        fontSize: 14,
-        color: '#64748B',
+        fontSize: 13,
+        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
-        lineHeight: 20,
-        marginBottom: 16,
+        lineHeight: 18,
+        marginBottom: 12,
+        opacity: 0.8,
     },
     cardFooter: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
+        gap: 12,
     },
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 16,
-        marginBottom: 4,
+        gap: 4,
     },
     statusDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        marginRight: 6,
     },
     metaText: {
-        fontSize: 12,
-        color: '#64748B',
+        fontSize: 11,
+        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
         textTransform: 'capitalize',
+    },
+    avatarGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 'auto',
+    },
+    avatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#fef1e1',
+    },
+    avatarText: {
+        fontSize: 9,
+        fontWeight: '600',
+        color: '#fef1e1',
+        fontFamily: 'Inter_600SemiBold',
     },
     emptyState: {
         padding: 40,
@@ -570,24 +757,26 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#F1F5F9',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 24,
+        borderWidth: 2,
+        borderColor: '#fc350b30',
     },
     emptyTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#475569',
+        color: '#a0430a',
         fontFamily: 'Inter_600SemiBold',
         marginBottom: 8,
     },
     emptySubtitle: {
         fontSize: 14,
-        color: '#94A3B8',
+        color: '#fc350b',
         fontFamily: 'Inter_400Regular',
         textAlign: 'center',
         lineHeight: 20,
+        opacity: 0.8,
     },
     fabContainer: {
         position: 'absolute',
@@ -598,7 +787,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        shadowColor: '#6366F1',
+        shadowColor: '#fc350b',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
         shadowRadius: 16,
@@ -613,21 +802,26 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(15, 23, 42, 0.7)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
     },
     modalContent: {
         width: '100%',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
+        maxWidth: 400,
+        backgroundColor: '#ffffff',
+        borderRadius: 28,
         padding: 24,
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 24 },
-        shadowOpacity: 0.2,
-        shadowRadius: 32,
+        borderWidth: 1,
+        borderColor: '#fc350b20',
+        shadowColor: '#a0430a',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
         elevation: 16,
+    },
+    filterModal: {
+        maxWidth: 300,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -638,74 +832,116 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#0F172A',
+        color: '#a0430a',
         fontFamily: 'Inter_700Bold',
     },
     closeButton: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: '#fef1e1',
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fc350b30',
     },
     inputContainer: {
         marginBottom: 20,
     },
     label: {
         fontSize: 14,
-        color: '#475569',
+        color: '#a0430a',
         fontFamily: 'Inter_500Medium',
         marginBottom: 8,
     },
-    input: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        color: '#1E293B',
+    inputWrapper: {
+        backgroundColor: '#fef1e1',
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: '#fc350b30',
+        paddingHorizontal: 16,
+    },
+    textAreaWrapper: {
+        paddingVertical: 8,
+    },
+    input: {
+        fontSize: 16,
+        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
+        paddingVertical: 14,
     },
     textArea: {
-        minHeight: 100,
+        minHeight: 80,
         textAlignVertical: 'top',
     },
     prioritySelector: {
         flexDirection: 'row',
-        gap: 10,
+        gap: 8,
     },
     priorityOption: {
         flex: 1,
-        padding: 12,
+        paddingVertical: 12,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: '#fc350b30',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
-    },
-    priorityOptionSelected: {
-        borderWidth: 2,
+        backgroundColor: '#fef1e1',
     },
     priorityOptionText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#64748B',
+        color: '#a0430a',
         fontFamily: 'Inter_600SemiBold',
     },
     createButton: {
-        borderRadius: 12,
+        borderRadius: 16,
         overflow: 'hidden',
+        marginTop: 8,
+        shadowColor: '#fc350b',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
     createButtonGradient: {
-        padding: 18,
+        padding: 16,
         alignItems: 'center',
     },
     createButtonText: {
-        color: '#FFFFFF',
+        color: '#fef1e1',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',
+    },
+    filterOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        marginBottom: 8,
+        backgroundColor: '#fef1e1',
+        borderWidth: 1,
+        borderColor: '#fc350b20',
+    },
+    filterOptionSelected: {
+        backgroundColor: '#fc350b15',
+        borderColor: '#fc350b',
+    },
+    filterOptionText: {
+        fontSize: 15,
+        color: '#a0430a',
+        fontFamily: 'Inter_500Medium',
+    },
+    filterOptionTextSelected: {
+        fontWeight: '600',
+        color: '#fc350b',
+    },
+    filterCount: {
+        fontSize: 14,
+        color: '#a0430a',
+        fontFamily: 'Inter_600SemiBold',
+        marginRight: 8,
     },
 });

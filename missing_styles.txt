@@ -1,0 +1,81 @@
+// Add these styles to the StyleSheet.create({ ... }) in index.tsx
+// Insert them BEFORE the closing }); of the StyleSheet, after createButtonText
+
+choiceContainer: {
+  flexDirection: 'row',
+  gap: 16,
+  marginTop: 8,
+},
+choiceCard: {
+  flex: 1,
+  backgroundColor: '#F8FAFC',
+  borderRadius: 16,
+  padding: 20,
+  alignItems: 'center',
+  borderWidth: 2,
+  borderColor: '#E2E8F0',
+},
+choiceIconContainer: {
+  width: 64,
+  height: 64,
+  borderRadius: 32,
+  backgroundColor: '#FFFFFF',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 12,
+},
+choiceTitle: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#1E293B',
+  fontFamily: 'Inter_600SemiBold',
+  marginBottom: 6,
+},
+choiceDescription: {
+  fontSize: 13,
+  color: '#64748B',
+  fontFamily: 'Inter_400Regular',
+  textAlign: 'center',
+},
+scrollModalContent: {
+  flexGrow: 1,
+  justifyContent: 'center',
+  padding: 20,
+},
+textArea: {
+  height: 80,
+  textAlignVertical: 'top',
+  paddingTop: 12,
+},
+row: {
+  flexDirection: 'row',
+  gap: 12,
+},
+halfWidth: {
+  flex: 1,
+},
+pickerContainer: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: 8,
+},
+pickerButton: {
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  borderRadius: 8,
+  backgroundColor: '#F1F5F9',
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+},
+pickerButtonActive: {
+  backgroundColor: '#6366F1',
+  borderColor: '#6366F1',
+},
+pickerText: {
+  fontSize: 13,
+  color: '#64748B',
+  fontFamily: 'Inter_500Medium',
+},
+pickerTextActive: {
+  color: '#FFFFFF',
+},

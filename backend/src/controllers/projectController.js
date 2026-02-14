@@ -56,7 +56,10 @@ const createProject = async (req, res, next) => {
 
     // Add other members if specified
     if (memberIds && memberIds.length > 0) {
-      const projectMembers = memberIds.map(memberId => ({
+      // Filter out the creator if they were included in the selection
+      const otherMemberIds = memberIds.filter(id => id !== userId);
+
+      const projectMembers = otherMemberIds.map(memberId => ({
         project_id: project.id,
         user_id: memberId,
         added_by: userId,
@@ -65,11 +68,12 @@ const createProject = async (req, res, next) => {
       await ProjectMember.bulkCreate(projectMembers, { transaction });
 
       // Send notifications to added members
-      for (const memberId of memberIds) {
+      for (const memberId of otherMemberIds) {
         const user = await User.findByPk(memberId, { transaction });
         if (user) {
           await Notification.create({
             user_id: memberId,
+            project_id: project.id,
             type: NOTIFICATION_TYPES.PROJECT_INVITE,
             message: `You have been added to project: "${project.name}" in workspace "${workspace.name}"`,
             data: {

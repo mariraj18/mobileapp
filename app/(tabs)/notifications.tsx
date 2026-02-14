@@ -1,24 +1,29 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Animated, RefreshControl } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { notificationApi, Notification } from '@/utils/api/notifications';
-import { Bell, Check, Clock, AlertCircle, MessageSquare, UserPlus } from 'lucide-react-native';
+import { Bell, Check, Clock, AlertCircle, MessageSquare, UserPlus, Calendar, CheckCircle, XCircle, Filter } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [showFilter, setShowFilter] = useState(false);
+  
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const listAnim = useRef(new Animated.Value(50)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     loadNotifications();
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 600,
         useNativeDriver: true,
       }),
-      Animated.spring(listAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
         tension: 30,
         friction: 8,
@@ -34,12 +39,18 @@ export default function NotificationsScreen() {
       setNotifications(response.data);
     }
     setLoading(false);
+    setRefreshing(false);
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadNotifications();
+  }, []);
 
   const handleMarkAsRead = async (id: string) => {
     const response = await notificationApi.markAsRead(id);
     if (response.success) {
-      setNotifications(prev => prev.map(n => 
+      setNotifications(prev => prev.map(n =>
         n.id === id ? { ...n, read: true } : n
       ));
     }
@@ -53,13 +64,36 @@ export default function NotificationsScreen() {
   };
 
   const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'TASK_ASSIGNED': return <AlertCircle size={20} color="#3B82F6" />;
-      case 'MENTION': return <MessageSquare size={20} color="#8B5CF6" />;
-      case 'INVITATION': return <UserPlus size={20} color="#10B981" />;
-      default: return <Bell size={20} color="#6366F1" />;
-    }
+    const icons = {
+      'TASK_ASSIGNMENT': <AlertCircle size={22} color="#fc350b" />,
+      'COMMENT': <MessageSquare size={22} color="#a0430a" />,
+      'PROJECT_INVITE': <UserPlus size={22} color="#fc350b" />,
+      'PROJECT_COMPLETED': <CheckCircle size={22} color="#f89b7a" />,
+      'DUE_DATE': <Clock size={22} color="#a0430a" />,
+      'PRIORITY': <AlertCircle size={22} color="#fc350b" />,
+    };
+    return icons[type as keyof typeof icons] || <Bell size={22} color="#a0430a" />;
   };
+
+  const getNotificationColor = (type: string) => {
+    const colors = {
+      'TASK_ASSIGNMENT': '#fc350b20',
+      'COMMENT': '#a0430a20',
+      'PROJECT_INVITE': '#f89b7a20',
+      'PROJECT_COMPLETED': '#dfe8e620',
+      'DUE_DATE': '#a0430a20',
+      'PRIORITY': '#fc350b20',
+    };
+    return colors[type as keyof typeof colors] || '#fef1e1';
+  };
+
+  const filteredNotifications = filter === 'all' 
+    ? notifications 
+    : filter === 'unread' 
+      ? notifications.filter(n => !n.read)
+      : notifications.filter(n => n.type === filter);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const renderNotification = ({ item, index }: { item: Notification; index: number }) => (
     <Animated.View
@@ -82,110 +116,152 @@ export default function NotificationsScreen() {
         activeOpacity={0.7}
       >
         <LinearGradient
-          colors={['#FFFFFF', '#F8FAFC']}
+          colors={!item.read ? ['#ffffff', '#fef1e1'] : ['#ffffff', '#ffffff']}
           style={styles.cardGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <View style={styles.cardHeader}>
-            <View style={[
-              styles.iconContainer,
-              { backgroundColor: !item.read ? 'rgba(99, 102, 241, 0.1)' : '#F1F5F9' }
-            ]}>
+          <View style={styles.cardContent}>
+            <View style={[styles.iconContainer, { backgroundColor: getNotificationColor(item.type) }]}>
               {getNotificationIcon(item.type)}
             </View>
-            <View style={styles.timeContainer}>
-              <Clock size={12} color="#94A3B8" />
-              <Text style={styles.timeText}>
-                {new Date(item.created_at).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
+            
+            <View style={styles.textContainer}>
+              <Text style={[styles.message, !item.read && styles.unreadText]}>
+                {item.message}
               </Text>
+              
+              <View style={styles.metaContainer}>
+                <Clock size={12} color="#a0430a" />
+                <Text style={styles.timeText}>
+                  {new Date(item.created_at).toLocaleDateString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </Text>
+                
+                {!item.read && (
+                  <View style={styles.unreadDot} />
+                )}
+              </View>
             </View>
           </View>
-          
-          <Text style={[styles.message, !item.read && styles.unreadText]}>
-            {item.message}
-          </Text>
-          
-          {!item.read && (
-            <View style={styles.unreadIndicator}>
-              <View style={styles.dot} />
-              <Text style={styles.unreadLabel}>New</Text>
-            </View>
-          )}
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
   );
 
-  if (loading) {
+  const FilterChip = ({ label, value, icon }: any) => (
+    <TouchableOpacity
+      style={[styles.filterChip, filter === value && styles.filterChipActive]}
+      onPress={() => setFilter(value)}
+    >
+      <Text style={[styles.filterChipText, filter === value && styles.filterChipTextActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <LinearGradient
+          colors={['#fef1e1', '#ffffff']}
+          style={StyleSheet.absoluteFill}
+        />
+        <ActivityIndicator size="large" color="#fc350b" />
       </View>
     );
   }
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <View style={styles.container}>
       <LinearGradient
-        colors={['#F1F5F9', '#FFFFFF']}
+        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
         style={styles.gradientBackground}
+        locations={[0, 0.6, 1]}
       >
-        <View style={styles.header}>
+        {/* Header */}
+        <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View>
             <Text style={styles.title}>Notifications</Text>
             <Text style={styles.subtitle}>
-              {notifications.filter(n => !n.read).length} unread
+              {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
             </Text>
           </View>
-          
-          {notifications.some(n => !n.read) && (
-            <TouchableOpacity 
+
+          {unreadCount > 0 && (
+            <TouchableOpacity
               style={styles.markAllButton}
               onPress={handleMarkAllRead}
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={['#10B981', '#34D399']}
+                colors={['#fc350b', '#a0430a']}
                 style={styles.markAllGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Check size={16} color="#fff" />
+                <Check size={16} color="#fef1e1" />
                 <Text style={styles.markAllText}>Mark all read</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
+
+        {/* Filter Section */}
+        <Animated.View style={[styles.filterSection, { opacity: fadeAnim }]}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterContainer}
+          >
+            <FilterChip label="All" value="all" />
+            <FilterChip label="Unread" value="unread" />
+            <FilterChip label="Tasks" value="TASK_ASSIGNMENT" />
+            <FilterChip label="Comments" value="COMMENT" />
+            <FilterChip label="Invites" value="PROJECT_INVITE" />
+          </ScrollView>
+        </Animated.View>
 
         <FlatList
-          data={notifications}
+          data={filteredNotifications}
           renderItem={renderNotification}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor="#fc350b"
+              colors={['#fc350b']}
+            />
+          }
           ListEmptyComponent={
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.emptyState,
                 { opacity: fadeAnim }
               ]}
             >
-              <View style={styles.emptyIllustration}>
-                <Bell size={48} color="#CBD5E1" />
-              </View>
-              <Text style={styles.emptyTitle}>No notifications yet</Text>
+              <LinearGradient
+                colors={['#ffffff', '#fef1e1']}
+                style={styles.emptyIllustration}
+              >
+                <Bell size={48} color="#fc350b" />
+              </LinearGradient>
+              <Text style={styles.emptyTitle}>All caught up!</Text>
               <Text style={styles.emptySubtitle}>
-                We'll notify you when important things happen
+                No notifications to show
               </Text>
             </Animated.View>
           }
         />
       </LinearGradient>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -200,40 +276,31 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
   },
   header: {
     paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 4,
+    paddingBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
   },
   markAllButton: {
-    borderRadius: 12,
+    borderRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#10B981',
+    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -244,91 +311,117 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 30,
+    gap: 6,
   },
   markAllText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: '#fef1e1',
+    fontSize: 13,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
-    marginLeft: 6,
+  },
+  filterSection: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  filterContainer: {
+    paddingRight: 24,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#fc350b20',
+    shadowColor: '#a0430a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  filterChipActive: {
+    backgroundColor: '#fc350b',
+    borderColor: '#fc350b',
+  },
+  filterChipText: {
+    fontSize: 13,
+    color: '#a0430a',
+    fontFamily: 'Inter_500Medium',
+  },
+  filterChipTextActive: {
+    color: '#fef1e1',
   },
   list: {
     padding: 20,
-    paddingBottom: 40,
+    paddingTop: 0,
+    paddingBottom: 100,
   },
   notificationContainer: {
     marginBottom: 12,
   },
   card: {
     borderRadius: 20,
-    shadowColor: '#0F172A',
+    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 4,
   },
   unreadCard: {
     borderLeftWidth: 4,
-    borderLeftColor: '#6366F1',
+    borderLeftColor: '#fc350b',
   },
   cardGradient: {
     borderRadius: 20,
-    padding: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#fc350b20',
   },
-  cardHeader: {
+  cardContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    gap: 16,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontFamily: 'Inter_400Regular',
-    marginLeft: 4,
+  textContainer: {
+    flex: 1,
   },
   message: {
     fontSize: 14,
-    color: '#475569',
+    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   unreadText: {
-    color: '#1E293B',
+    color: '#fc350b',
     fontWeight: '500',
     fontFamily: 'Inter_500Medium',
   },
-  unreadIndicator: {
+  metaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
-  dot: {
+  timeText: {
+    fontSize: 11,
+    color: '#a0430a',
+    fontFamily: 'Inter_400Regular',
+    opacity: 0.7,
+  },
+  unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6366F1',
-    marginRight: 8,
-  },
-  unreadLabel: {
-    fontSize: 12,
-    color: '#6366F1',
-    fontWeight: '600',
-    fontFamily: 'Inter_600SemiBold',
+    backgroundColor: '#fc350b',
+    marginLeft: 4,
   },
   emptyState: {
     padding: 40,
@@ -336,26 +429,30 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
   emptyIllustration: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F1F5F9',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#fc350b30',
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#475569',
+    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 20,
+    opacity: 0.7,
   },
 });
+
+import { ScrollView } from 'react-native';

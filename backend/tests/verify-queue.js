@@ -1,30 +1,37 @@
-const { publishTask, startQueue, boss } = require('../src/utils/queue');
+const { publishTask } = require('../src/utils/queue');
+const { TaskJob } = require('../src/models');
 const logger = require('../src/utils/logger');
 
 async function verify() {
-    console.log('Starting Queue Verification...');
-    await startQueue();
+    console.log('--- Custom Queue Verification ---');
 
     const testData = {
         user_id: '00000000-0000-0000-0000-000000000000',
-        message: 'Test Notification',
+        message: 'Test Notification from Custom Queue',
         type: 'ASSIGNMENT'
     };
 
-    console.log('Publishing test notification job...');
-    const jobId = await publishTask('notification', testData);
-    console.log(`Job published successfully with ID: ${jobId}`);
+    try {
+        console.log('Publishing test job...');
+        const jobId = await publishTask('notification', testData);
+        console.log(`Job published successfully with ID: ${jobId}`);
 
-    console.log('Waiting for worker to (optionally) pick it up or just checking queue status...');
-
-    // Note: This script doesn't start a subscriber, it just verifies publishing.
-    // We will run the real worker in a separate terminal.
-
-    console.log('Verification script finished. Running worker in a separate process is recommended.');
+        const job = await TaskJob.findByPk(jobId);
+        if (job) {
+            console.log('Job found in database:', job.toJSON());
+            console.log('Verification: OK');
+        } else {
+            console.log('Job NOT found in database!');
+            process.exit(1);
+        }
+    } catch (e) {
+        console.error('Verification failed:', e);
+        process.exit(1);
+    }
     process.exit(0);
 }
 
 verify().catch(err => {
-    console.error('Verification failed:', err);
+    console.error('Outer error:', err);
     process.exit(1);
 });

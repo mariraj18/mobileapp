@@ -378,9 +378,9 @@ const addWorkspaceMemberByCode = async (req, res, next) => {
 
     // Find user by user_id (5-digit code)
     const user = await User.findOne({
-      where: { 
+      where: {
         user_id: userCode.toUpperCase(),
-        is_active: true 
+        is_active: true
       },
     });
 
@@ -549,6 +549,18 @@ const removeMember = async (req, res, next) => {
       });
     }
 
+    // Role hierarchy enforcement
+    if (currentUserMembership.role === ROLES.ADMIN) {
+      // Admin can only remove regular MEMBERS
+      if (membership.role !== ROLES.MEMBER) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'Admins can only remove regular members',
+        });
+      }
+    }
+
+    // Prevent removing the last owner
     if (membership.role === ROLES.OWNER) {
       const ownerCount = await WorkspaceMember.count({
         where: {

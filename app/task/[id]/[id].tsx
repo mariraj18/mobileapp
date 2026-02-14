@@ -9,11 +9,16 @@ import {
   TextInput,
   Alert,
   Animated,
+  FlatList,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { taskApi, Task, UpdateTaskData } from '@/utils/api/tasks';
 import { commentApi, Comment, CreateCommentData } from '@/utils/api/comments';
+import { attachmentApi } from '@/utils/api/attachments';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Clock,
@@ -28,16 +33,31 @@ import {
   ChevronRight,
   Reply,
   X,
+  Download,
+  Trash2,
+  File,
+  Image as ImageIcon,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+interface Attachment {
+  id: string;
+  original_filename: string;
+  file_size: number;
+  file_type: string;
+  uploaded_by: string;
+  uploaded_at: string;
+}
 
 export default function TaskDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [task, setTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -52,6 +72,9 @@ export default function TaskDetailsScreen() {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const commentAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Check if this is a standalone task (no project_id)
+  const isStandaloneTask = task?.project_id === null;
 
   useEffect(() => {
     if (id) {
@@ -81,10 +104,9 @@ export default function TaskDetailsScreen() {
 
   const loadData = async () => {
     setLoading(true);
-    const [taskRes, commentsRes] = await Promise.all([
-      taskApi.getById(id!),
-      commentApi.getByTask(id!),
-    ]);
+
+    // Load task details
+    const taskRes = await taskApi.getById(id!);
 
     if (taskRes.success) {
       setTask(taskRes.data);
@@ -95,8 +117,20 @@ export default function TaskDetailsScreen() {
       }
     }
 
-    if (commentsRes.success) {
-      setComments(commentsRes.data);
+    // Only load comments and attachments if it's not a standalone task
+    if (!isStandaloneTask) {
+      const [commentsRes, attachmentsRes] = await Promise.all([
+        commentApi.getByTask(id!),
+        attachmentApi.getByTask(id!),
+      ]);
+
+      if (commentsRes.success) {
+        setComments(commentsRes.data);
+      }
+
+      if (attachmentsRes.success) {
+        setAttachments(attachmentsRes.data);
+      }
     }
 
     setLoading(false);
@@ -107,6 +141,8 @@ export default function TaskDetailsScreen() {
     const response = await taskApi.update(task.id, { status });
     if (response.success) {
       setTask({ ...task, status });
+    } else {
+      Alert.alert('Error', response.message || 'Failed to update task status');
     }
   };
 
@@ -125,6 +161,8 @@ export default function TaskDetailsScreen() {
     });
     if (response.success) {
       setTask({ ...task, due_date: date.toISOString() });
+    } else {
+      Alert.alert('Error', response.message || 'Failed to update due date');
     }
   };
 
@@ -137,6 +175,8 @@ export default function TaskDetailsScreen() {
     if (response.success) {
       setTask({ ...task, title: editTitle, description: editDesc });
       setEditMode(false);
+    } else {
+      Alert.alert('Error', response.message || 'Failed to update task details');
     }
   };
 
@@ -160,38 +200,98 @@ export default function TaskDetailsScreen() {
       setNewComment('');
       setReplyingTo(null);
       loadData();
-      // Scroll to bottom
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
+    } else {
+      Alert.alert('Error', response.message || 'Failed to send comment');
     }
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets[0];
+      setUploading(true);
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        type: file.mimeType || 'application/octet-stream',
+        name: file.name,
+      } as any);
+
+      const response = await attachmentApi.upload(id!, formData);
+
+      if (response.success) {
+        loadData();
+      } else {
+        Alert.alert('Error', 'Failed to upload file');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    Alert.alert(
+      'Delete Attachment',
+      'Are you sure you want to delete this attachment?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const response = await attachmentApi.delete(attachmentId);
+            if (response.success) {
+              loadData();
+            } else {
+              Alert.alert('Error', 'Failed to delete attachment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) {
+      return <ImageIcon size={20} color="#6366F1" />;
+    }
+    return <File size={20} color="#6366F1" />;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DONE':
-        return '#10B981';
-      case 'IN_PROGRESS':
-        return '#3B82F6';
-      case 'TODO':
-        return '#F59E0B';
-      default:
-        return '#94A3B8';
+      case 'DONE': return '#10B981';
+      case 'IN_PROGRESS': return '#3B82F6';
+      case 'TODO': return '#F59E0B';
+      default: return '#94A3B8';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'HIGH':
-        return '#EF4444';
-      case 'URGENT':
-        return '#DC2626';
-      case 'MEDIUM':
-        return '#F59E0B';
-      case 'LOW':
-        return '#6B7280';
-      default:
-        return '#94A3B8';
+      case 'HIGH': return '#EF4444';
+      case 'URGENT': return '#DC2626';
+      case 'MEDIUM': return '#F59E0B';
+      case 'LOW': return '#6B7280';
+      default: return '#94A3B8';
     }
   };
 
@@ -236,10 +336,42 @@ export default function TaskDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        {comment.replies?.map((reply) => renderComment(reply, level + 1))}
+        {comment.replies?.map((reply: Comment) => renderComment(reply, level + 1))}
       </View>
     );
   };
+
+  const renderAttachment = ({ item }: { item: Attachment }) => (
+    <View style={styles.attachmentItem}>
+      <View style={styles.attachmentInfo}>
+        {getFileIcon(item.file_type)}
+        <View style={styles.attachmentDetails}>
+          <Text style={styles.attachmentName} numberOfLines={1}>
+            {item.original_filename}
+          </Text>
+          <Text style={styles.attachmentMeta}>
+            {formatFileSize(item.file_size)} • {new Date(item.uploaded_at).toLocaleDateString()}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.attachmentActions}>
+        <TouchableOpacity
+          style={styles.attachmentButton}
+          onPress={() => attachmentApi.download(item.id)}
+        >
+          <Download size={18} color="#64748B" />
+        </TouchableOpacity>
+        {item.uploaded_by === user?.id && (
+          <TouchableOpacity
+            style={styles.attachmentButton}
+            onPress={() => handleDeleteAttachment(item.id)}
+          >
+            <Trash2 size={18} color="#EF4444" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -261,7 +393,7 @@ export default function TaskDetailsScreen() {
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <Stack.Screen
         options={{
-          title: 'Task Details',
+          title: isStandaloneTask ? 'Personal Task' : 'Task Details',
           headerBackTitle: 'Back',
           headerTintColor: '#6366F1',
         }}
@@ -441,29 +573,71 @@ export default function TaskDetailsScreen() {
           </View>
         )}
 
-        <Animated.View style={[styles.commentsSection, { opacity: commentAnim }]}>
-          <View style={styles.commentsHeader}>
-            <Text style={styles.sectionTitle}>
-              Comments ({comments.length})
-            </Text>
-            {replyingTo && (
-              <View style={styles.replyingTo}>
-                <Text style={styles.replyingToText}>
-                  Replying to {replyingTo.user.name}
-                </Text>
-                <TouchableOpacity onPress={() => setReplyingTo(null)}>
-                  <X size={16} color="#64748B" />
-                </TouchableOpacity>
-              </View>
+        {/* Attachments Section - Only for workspace tasks */}
+        {!isStandaloneTask && (
+          <View style={styles.attachmentsSection}>
+            <View style={styles.sectionHeader}>
+              <Paperclip size={16} color="#64748B" />
+              <Text style={styles.sectionTitle}>Attachments ({attachments.length})</Text>
+            </View>
+
+            {attachments.length > 0 ? (
+              <FlatList
+                data={attachments}
+                renderItem={renderAttachment}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+              />
+            ) : (
+              <Text style={styles.emptyAttachments}>No attachments yet</Text>
+            )}
+
+            {!task.project?.is_completed && (
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={handlePickDocument}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#6366F1" />
+                ) : (
+                  <>
+                    <Paperclip size={16} color="#6366F1" />
+                    <Text style={styles.uploadButtonText}>Upload File</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             )}
           </View>
-          {comments.map((comment) => renderComment(comment))}
-        </Animated.View>
+        )}
+
+        {/* Comments Section - Only for workspace tasks */}
+        {!isStandaloneTask && (
+          <Animated.View style={[styles.commentsSection, { opacity: commentAnim }]}>
+            <View style={styles.commentsHeader}>
+              <Text style={styles.sectionTitle}>
+                Comments ({comments.length})
+              </Text>
+              {replyingTo && (
+                <View style={styles.replyingTo}>
+                  <Text style={styles.replyingToText}>
+                    Replying to {replyingTo.user.name}
+                  </Text>
+                  <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                    <X size={16} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            {comments.map((comment) => renderComment(comment))}
+          </Animated.View>
+        )}
 
         <View style={{ height: 100 }} />
       </Animated.ScrollView>
 
-      {!task.project?.is_completed && (
+      {/* Comment Input - Only for workspace tasks */}
+      {!task.project?.is_completed && !isStandaloneTask && (
         <Animated.View
           style={[
             styles.inputBar,
@@ -550,11 +724,18 @@ const styles = StyleSheet.create({
   taskHeaderGradient: {
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 16px rgba(15, 23, 42, 0.08)',
+      },
+      default: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 8,
+      },
+    }),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -747,6 +928,74 @@ const styles = StyleSheet.create({
   statusButtonTextActive: {
     color: '#FFFFFF',
   },
+  attachmentsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  attachmentItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  attachmentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  attachmentDetails: {
+    flex: 1,
+  },
+  attachmentName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 2,
+  },
+  attachmentMeta: {
+    fontSize: 12,
+    color: '#64748B',
+    fontFamily: 'Inter_400Regular',
+  },
+  attachmentActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  attachmentButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  emptyAttachments: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    padding: 20,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    marginTop: 12,
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    fontFamily: 'Inter_600SemiBold',
+  },
   commentsSection: {
     paddingHorizontal: 20,
     paddingBottom: 120,
@@ -775,11 +1024,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 1px 2px rgba(15, 23, 42, 0.05)',
+      },
+      default: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      },
+    }),
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
@@ -857,11 +1113,18 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.05)',
+      },
+      default: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },

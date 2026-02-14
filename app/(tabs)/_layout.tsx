@@ -1,89 +1,98 @@
 import { Tabs } from 'expo-router';
-import { Home, ListTodo, Bell, User } from 'lucide-react-native';
-import { StyleSheet, Animated } from 'react-native';
-import { useState, useEffect } from 'react';
+import { Home, ListTodo, Bell, Settings } from 'lucide-react-native';
+import { StyleSheet, Animated, Pressable, View, Text } from 'react-native';
+import { useRef, useEffect } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function TabLayout() {
-  const [scaleAnim] = useState(new Animated.Value(1));
-
-  const animateTabPress = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.8,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#6366F1',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: '#fc350b',
+        tabBarInactiveTintColor: '#a0430a',
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
+        tabBarButton: CustomTabBarButton,
+        tabBarBackground: () => (
+          <LinearGradient
+            colors={['#ffffff', '#fef1e1']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        ),
       }}
     >
       <Tabs.Screen
         name="index"
-        listeners={{
-          tabPress: animateTabPress,
-        }}
         options={{
           title: 'Workspaces',
           tabBarIcon: ({ color, size, focused }) => (
-            <Animated.View style={focused ? styles.activeIcon : null}>
-              <Home color={color} size={size} strokeWidth={focused ? 2.5 : 2} />
+            <Animated.View style={focused ? styles.activeIconWrapper : null}>
+              <LinearGradient
+                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
+                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Home color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+              </LinearGradient>
             </Animated.View>
           ),
         }}
       />
       <Tabs.Screen
         name="tasks"
-        listeners={{
-          tabPress: animateTabPress,
-        }}
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color, size, focused }) => (
-            <Animated.View style={focused ? styles.activeIcon : null}>
-              <ListTodo color={color} size={size} strokeWidth={focused ? 2.5 : 2} />
+            <Animated.View style={focused ? styles.activeIconWrapper : null}>
+              <LinearGradient
+                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
+                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <ListTodo color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+              </LinearGradient>
             </Animated.View>
           ),
         }}
       />
       <Tabs.Screen
         name="notifications"
-        listeners={{
-          tabPress: animateTabPress,
-        }}
         options={{
           title: 'Notifications',
           tabBarIcon: ({ color, size, focused }) => (
-            <Animated.View style={focused ? styles.activeIcon : null}>
-              <Bell color={color} size={size} strokeWidth={focused ? 2.5 : 2} />
+            <Animated.View style={focused ? styles.activeIconWrapper : null}>
+              <LinearGradient
+                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
+                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Bell color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+              </LinearGradient>
             </Animated.View>
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
-        listeners={{
-          tabPress: animateTabPress,
-        }}
         options={{
-          title: 'Profile',
+          title: 'Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <Animated.View style={focused ? styles.activeIcon : null}>
-              <User color={color} size={size} strokeWidth={focused ? 2.5 : 2} />
+            <Animated.View style={focused ? styles.activeIconWrapper : null}>
+              <LinearGradient
+                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
+                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Settings color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+              </LinearGradient>
             </Animated.View>
           ),
         }}
@@ -92,31 +101,120 @@ export default function TabLayout() {
   );
 }
 
+const CustomTabBarButton = (props: any) => {
+  const { children, onPress, accessibilityState } = props;
+  const focused = accessibilityState?.selected;
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (focused) {
+      Animated.spring(translateY, {
+        toValue: -4,
+        useNativeDriver: true,
+        friction: 5,
+      }).start();
+    } else {
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        friction: 5,
+      }).start();
+    }
+  }, [focused]);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.9,
+      useNativeDriver: true,
+      friction: 5,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 5,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={styles.buttonContainer}
+    >
+      <Animated.View style={[
+        styles.buttonContent,
+        {
+          transform: [{ scale }, { translateY }],
+        }
+      ]}>
+        {children}
+        {focused && <View style={styles.activeDot} />}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    height: 60,
+    borderTopColor: '#fc350b20',
+    height: 70,
     paddingBottom: 8,
     paddingTop: 8,
     elevation: 8,
-    shadowColor: '#0F172A',
+    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    backgroundColor: 'transparent',
+    // Remove this line: position: 'absolute',
   },
   tabLabel: {
     fontFamily: 'Inter_500Medium',
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 4,
+    color: '#a0430a',
   },
   tabItem: {
     paddingVertical: 4,
   },
-  activeIcon: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-    padding: 8,
+  buttonContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  iconGradient: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeIconGradient: {
+    shadowColor: '#fc350b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  activeIconWrapper: {
+    transform: [{ scale: 1.1 }],
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#fc350b',
+    marginTop: 4,
   },
 });

@@ -1,26 +1,22 @@
-const Joi = require('joi');
-const { HTTP_STATUS, ERROR_MESSAGES } = require('../../config/constants');
+const { HTTP_STATUS } = require('../../config/constants');
 
 const validate = (schema) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
+    const { error, value } = schema.validate(req.body, { abortEarly: false });
+    
     if (error) {
-      const errors = error.details.map((detail) => ({
+      const errors = error.details.map(detail => ({
         field: detail.path.join('.'),
-        message: detail.message,
+        message: detail.message
       }));
-
-      return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json({
+      
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: ERROR_MESSAGES.VALIDATION_ERROR,
-        errors,
+        message: 'Validation error',
+        errors
       });
     }
-
+    
     req.validatedBody = value;
     next();
   };
@@ -28,24 +24,21 @@ const validate = (schema) => {
 
 const validateQuery = (schema) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.query, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
+    const { error, value } = schema.validate(req.query, { abortEarly: false });
+    
     if (error) {
-      const errors = error.details.map((detail) => ({
+      const errors = error.details.map(detail => ({
         field: detail.path.join('.'),
-        message: detail.message,
+        message: detail.message
       }));
-
-      return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json({
+      
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: ERROR_MESSAGES.VALIDATION_ERROR,
-        errors,
+        message: 'Validation error',
+        errors
       });
     }
-
+    
     req.validatedQuery = value;
     next();
   };
@@ -53,24 +46,21 @@ const validateQuery = (schema) => {
 
 const validateParams = (schema) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.params, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
+    const { error, value } = schema.validate(req.params, { abortEarly: false });
+    
     if (error) {
-      const errors = error.details.map((detail) => ({
+      const errors = error.details.map(detail => ({
         field: detail.path.join('.'),
-        message: detail.message,
+        message: detail.message
       }));
-
-      return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json({
+      
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: ERROR_MESSAGES.VALIDATION_ERROR,
-        errors,
+        message: 'Validation error',
+        errors
       });
     }
-
+    
     req.validatedParams = value;
     next();
   };
@@ -79,5 +69,5 @@ const validateParams = (schema) => {
 module.exports = {
   validate,
   validateQuery,
-  validateParams,
+  validateParams
 };

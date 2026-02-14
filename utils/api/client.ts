@@ -6,6 +6,7 @@ const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL || 'http://localhost:5
 export interface ApiError {
   success: false;
   message: string;
+  status?: number;
   errors?: Array<{ field: string; message: string }>;
 }
 
@@ -13,6 +14,7 @@ export interface ApiResponse<T> {
   success: true;
   data: T;
   message?: string;
+  status: number;
   pagination?: {
     page: number;
     limit: number;
@@ -144,10 +146,10 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        return data as ApiError;
+        return { ...(data as ApiError), status: response.status } as ApiError;
       }
 
-      return data as ApiResponse<T>;
+      return { ...(data as ApiResponse<T>), status: response.status } as ApiResponse<T>;
     } catch (error) {
       console.error('API request error:', error);
       return {
@@ -226,10 +228,10 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        return data as ApiError;
+        return { ...(data as ApiError), status: response.status } as ApiError;
       }
 
-      return data as ApiResponse<T>;
+      return { ...(data as ApiResponse<T>), status: response.status } as ApiResponse<T>;
     } catch (error) {
       console.error('File upload error:', error);
       return {

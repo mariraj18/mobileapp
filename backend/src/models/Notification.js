@@ -25,12 +25,23 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id',
         },
       },
+      project_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+          model: 'projects',
+          key: 'id',
+        },
+      },
       type: {
         type: DataTypes.ENUM(
           NOTIFICATION_TYPES.DUE_DATE,
           NOTIFICATION_TYPES.PRIORITY,
           NOTIFICATION_TYPES.ASSIGNMENT,
-          NOTIFICATION_TYPES.COMMENT
+          NOTIFICATION_TYPES.COMMENT,
+          NOTIFICATION_TYPES.PROJECT_INVITE,
+          NOTIFICATION_TYPES.TASK_ASSIGNMENT,
+          NOTIFICATION_TYPES.PROJECT_COMPLETED
         ),
         allowNull: false,
       },

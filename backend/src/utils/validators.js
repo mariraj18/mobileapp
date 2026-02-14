@@ -17,6 +17,7 @@ const authSchemas = {
     refreshToken: Joi.string().required(),
   }),
 };
+
 const userCodeParam = Joi.object({
   userCode: Joi.string().length(5).pattern(/^[A-Z0-9]+$/).required(),
 });
@@ -27,6 +28,7 @@ const addMemberByCodeSchema = Joi.object({
     .valid(ROLES.MEMBER, ROLES.ADMIN)
     .default(ROLES.MEMBER),
 });
+
 const workspaceSchemas = {
   create: Joi.object({
     name: Joi.string().min(1).max(255).required(),
@@ -48,16 +50,21 @@ const workspaceSchemas = {
       .valid(ROLES.OWNER, ROLES.ADMIN, ROLES.MEMBER)
       .required(),
   }),
-    addMemberByCode: addMemberByCodeSchema,
+
+  addMemberByCode: addMemberByCodeSchema,
 };
 
 const projectSchemas = {
   create: Joi.object({
     name: Joi.string().min(1).max(255).required(),
+    description: Joi.string().allow('').max(1000).optional(),
+    memberIds: Joi.array().items(Joi.string().uuid()).optional(),
   }),
 
   update: Joi.object({
-    name: Joi.string().min(1).max(255).required(),
+    name: Joi.string().min(1).max(255).optional(),
+    description: Joi.string().allow('').max(1000).optional(),
+    is_completed: Joi.boolean().optional(),
   }),
 };
 
@@ -73,6 +80,18 @@ const taskSchemas = {
       .default(TASK_PRIORITY.MEDIUM),
     due_date: Joi.date().iso().allow(null).optional(),
     assignedUserIds: Joi.array().items(Joi.string().uuid()).default([]),
+  }),
+
+  createStandalone: Joi.object({
+    title: Joi.string().min(1).max(255).required(),
+    description: Joi.string().allow('').max(10000).default(''),
+    status: Joi.string()
+      .valid(...Object.values(TASK_STATUS))
+      .default(TASK_STATUS.TODO),
+    priority: Joi.string()
+      .valid(...Object.values(TASK_PRIORITY))
+      .default(TASK_PRIORITY.MEDIUM),
+    due_date: Joi.date().iso().allow(null).optional(),
   }),
 
   update: Joi.object({
@@ -112,6 +131,8 @@ const taskSchemas = {
 const commentSchemas = {
   create: Joi.object({
     content: Joi.string().min(1).max(10000).required(),
+    parentId: Joi.string().uuid().optional(),
+    replyTo: Joi.string().uuid().optional(),
   }),
 
   update: Joi.object({
@@ -155,9 +176,5 @@ module.exports = {
   workspaceIdParam,
   projectIdParam,
   taskIdParam,
-   userCodeParam,
-  workspaceSchemas: {
-    ...workspaceSchemas,
-    addMemberByCode: addMemberByCodeSchema,
-  },
+  userCodeParam,
 };

@@ -211,6 +211,7 @@ const getUserStats = async (req, res, next) => {
       Project.count({
         include: [{
           model: Workspace,
+          as: 'workspace',
           required: true,
           include: [{
             model: User,

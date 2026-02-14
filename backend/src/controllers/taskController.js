@@ -1,4 +1,4 @@
-const { Task, Project, User, TaskAssignment, TaskComment, TaskAttachment, Notification, ProjectMember } = require('../models');
+const { Task, Project, User, TaskAssignment, TaskComment, TaskAttachment, Notification, ProjectMember, WorkspaceMember } = require('../models');
 const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES } = require('../../config/constants');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helpers');
 const logger = require('../utils/logger');
@@ -239,16 +239,29 @@ const getTaskById = async (req, res, next) => {
       });
     }
 
-    // Check if user is project member
-    const isProjectMember = await ProjectMember.findOne({
-      where: { project_id: task.project_id, user_id: userId },
-    });
-
-    if (!isProjectMember) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        message: 'You are not a member of this project',
+    // Check if user has permission
+    if (task.project_id) {
+      const isProjectMember = await ProjectMember.findOne({
+        where: { project_id: task.project_id, user_id: userId },
       });
+
+      if (!isProjectMember) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You are not a member of this project',
+        });
+      }
+    } else {
+      // Standalone task - check if user is creator or assigned
+      const isCreator = task.created_by === userId;
+      const isAssigned = task.assignedUsers.some(u => u.id === userId);
+
+      if (!isCreator && !isAssigned) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to access this standalone task',
+        });
+      }
     }
 
     const commentCount = await TaskComment.count({
@@ -293,23 +306,33 @@ const updateTask = async (req, res, next) => {
     }
 
     // Check if project is completed
-    if (task.project.is_completed) {
+    if (task.project_id && task.project?.is_completed) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
         message: ERROR_MESSAGES.PROJECT_COMPLETED,
       });
     }
 
-    // Check if user is task creator or project member with edit permissions
-    const isProjectMember = await ProjectMember.findOne({
-      where: { project_id: task.project_id, user_id: userId },
-    });
-
-    if (!isProjectMember && task.created_by !== userId) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        message: 'You do not have permission to update this task',
+    // Check if user has permission
+    if (task.project_id) {
+      const isProjectMember = await ProjectMember.findOne({
+        where: { project_id: task.project_id, user_id: userId },
       });
+
+      if (!isProjectMember && task.created_by !== userId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to update this task',
+        });
+      }
+    } else {
+      // Standalone task - only creator can update
+      if (task.created_by !== userId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to update this standalone task',
+        });
+      }
     }
 
     const oldDueDate = task.due_date;
@@ -380,27 +403,37 @@ const deleteTask = async (req, res, next) => {
     }
 
     // Check if project is completed
-    if (task.project.is_completed) {
+    if (task.project_id && task.project?.is_completed) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
         message: ERROR_MESSAGES.PROJECT_COMPLETED,
       });
     }
 
-    // Check if user is task creator or workspace admin
-    const workspaceMembership = await WorkspaceMember.findOne({
-      where: {
-        user_id: userId,
-        workspace_id: task.project.workspace_id,
-        role: ['OWNER', 'ADMIN'],
-      },
-    });
-
-    if (!workspaceMembership && task.created_by !== userId) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        message: 'You do not have permission to delete this task',
+    // Check if user has permission
+    if (task.project_id) {
+      const workspaceMembership = await WorkspaceMember.findOne({
+        where: {
+          user_id: userId,
+          workspace_id: task.project.workspace_id,
+          role: [ROLES.OWNER, ROLES.ADMIN],
+        },
       });
+
+      if (!workspaceMembership && task.created_by !== userId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to delete this task',
+        });
+      }
+    } else {
+      // Standalone task - only creator can delete
+      if (task.created_by !== userId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to delete this standalone task',
+        });
+      }
     }
 
     await task.destroy();
@@ -444,7 +477,7 @@ const assignUsers = async (req, res, next) => {
     }
 
     // Check if project is completed
-    if (task.project.is_completed) {
+    if (task.project_id && task.project?.is_completed) {
       await transaction.rollback();
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
@@ -453,17 +486,28 @@ const assignUsers = async (req, res, next) => {
     }
 
     // Check if user has permission to assign users
-    const isProjectMember = await ProjectMember.findOne({
-      where: { project_id: task.project_id, user_id: currentUserId },
-      transaction,
-    });
-
-    if (!isProjectMember) {
-      await transaction.rollback();
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        message: 'You are not a member of this project',
+    if (task.project_id) {
+      const isProjectMember = await ProjectMember.findOne({
+        where: { project_id: task.project_id, user_id: currentUserId },
+        transaction,
       });
+
+      if (!isProjectMember) {
+        await transaction.rollback();
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You are not a member of this project',
+        });
+      }
+    } else {
+      // Standalone task - only creator can assign
+      if (task.created_by !== currentUserId) {
+        await transaction.rollback();
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to assign users to this standalone task',
+        });
+      }
     }
 
     const newAssignments = [];
@@ -487,12 +531,14 @@ const assignUsers = async (req, res, next) => {
           user_id: userId,
           task_id: id,
           type: NOTIFICATION_TYPES.TASK_ASSIGNMENT,
-          message: `You have been assigned to task: "${task.title}" in project "${task.project.name}"`,
+          message: task.project_id
+            ? `You have been assigned to task: "${task.title}" in project "${task.project.name}"`
+            : `You have been assigned to task: "${task.title}"`,
           data: {
             taskId: task.id,
             taskTitle: task.title,
-            projectId: task.project.id,
-            projectName: task.project.name,
+            projectId: task.project_id,
+            projectName: task.project?.name,
           },
         });
 
@@ -547,15 +593,25 @@ const unassignUsers = async (req, res, next) => {
     }
 
     // Check if user has permission
-    const isProjectMember = await ProjectMember.findOne({
-      where: { project_id: task.project_id, user_id: currentUserId },
-    });
-
-    if (!isProjectMember) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        message: 'You are not a member of this project',
+    if (task.project_id) {
+      const isProjectMember = await ProjectMember.findOne({
+        where: { project_id: task.project_id, user_id: currentUserId },
       });
+
+      if (!isProjectMember) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You are not a member of this project',
+        });
+      }
+    } else {
+      // Standalone task - only creator can unassign
+      if (task.created_by !== currentUserId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'You do not have permission to unassign users from this standalone task',
+        });
+      }
     }
 
     const deleted = await TaskAssignment.destroy({
@@ -591,9 +647,9 @@ const getUserTasks = async (req, res, next) => {
     const assignmentInclude = {
       model: User,
       as: 'assignedUsers',
-      attributes: [],
+      attributes: ['id'],
       where: { id: userId },
-      required: true,
+      required: false,
       through: { attributes: [] },
     };
 
@@ -612,9 +668,15 @@ const getUserTasks = async (req, res, next) => {
       ];
     }
 
-    // Add project filter if specified
+    // Add project filter or standalone/assigned logic
     if (projectId) {
       taskWhereClause.project_id = projectId;
+      assignmentInclude.required = true;
+    } else {
+      taskWhereClause[Op.or] = [
+        { '$assignedUsers.id$': userId },
+        { [Op.and]: [{ project_id: null }, { created_by: userId }] }
+      ];
     }
 
     const { count, rows } = await Task.findAndCountAll({
@@ -625,7 +687,7 @@ const getUserTasks = async (req, res, next) => {
           model: Project,
           as: 'project',
           attributes: ['id', 'name', 'workspace_id', 'is_completed'],
-          required: true,
+          required: false,
         },
         {
           model: User,
@@ -639,16 +701,36 @@ const getUserTasks = async (req, res, next) => {
       subQuery: false,
     });
 
-    // Calculate stats for active projects only
-    const statsWhere = { '$project.is_completed$': false };
+    // Calculate stats
+    const statsWhere = {
+      [Op.or]: [
+        { '$assignedUsers.id$': userId },
+        { [Op.and]: [{ project_id: null }, { created_by: userId }] }
+      ],
+      [Op.and]: [
+        {
+          [Op.or]: [
+            { project_id: null },
+            { '$project.is_completed$': false }
+          ]
+        }
+      ]
+    };
+
     const statsInclude = [
-      assignmentInclude,
+      {
+        model: User,
+        as: 'assignedUsers',
+        attributes: [],
+        where: { id: userId },
+        required: false,
+        through: { attributes: [] },
+      },
       {
         model: Project,
         as: 'project',
         attributes: [],
-        where: { is_completed: false },
-        required: true,
+        required: false,
       },
     ];
 
@@ -674,8 +756,8 @@ const getUserTasks = async (req, res, next) => {
       }),
     ]);
 
-    // Filter out tasks from completed projects
-    const filteredRows = rows.filter(task => !task.project.is_completed);
+    // Filter out rows from completed projects
+    const filteredRows = rows.filter(task => !task.project || !task.project.is_completed);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -759,6 +841,199 @@ const getMyProjectsTasks = async (req, res, next) => {
   }
 };
 
+// Standalone task controllers
+const createStandaloneTask = async (req, res, next) => {
+  try {
+    console.log('createStandaloneTask - req.body:', req.body);
+    console.log('createStandaloneTask - req.validatedBody:', req.validatedBody);
+
+    const { title, description, status, priority, due_date } = req.validatedBody;
+    const userId = req.user.id;
+
+    console.log('Creating task with:', { title, description, status, priority, due_date, userId });
+
+    const task = await Task.create({
+      title,
+      description: description || '',
+      status: status || 'TODO',
+      priority: priority || 'MEDIUM',
+      due_date: due_date || null,
+      project_id: null,
+      created_by: userId,
+    });
+
+    console.log('Task created:', task.id);
+
+    await publishTask('activity-log', {
+      level: 'info',
+      message: `Standalone task created: ${task.title} by ${req.user.email}`,
+    });
+
+    const createdTask = await Task.findByPk(task.id, {
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'user_id', 'name', 'email', 'profile_image'],
+        },
+      ],
+    });
+
+    res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      message: 'Standalone task created successfully',
+      data: createdTask,
+    });
+  } catch (error) {
+    console.error('Error in createStandaloneTask:', error);
+    next(error);
+  }
+};
+
+const getStandaloneTasks = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { page, limit, offset } = getPaginationParams(req.validatedQuery);
+    const { status, priority, search, sortBy, sortOrder } = req.validatedQuery;
+
+    const whereClause = {
+      project_id: null,
+      created_by: userId,
+    };
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (priority) {
+      whereClause.priority = priority;
+    }
+
+    if (search) {
+      whereClause[Op.or] = [
+        { title: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const { count, rows } = await Task.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'user_id', 'name', 'email', 'profile_image'],
+        },
+      ],
+      limit,
+      offset,
+      order: [[sortBy, sortOrder]],
+    });
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      ...buildPaginatedResponse(rows, page, limit, count),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateStandaloneTask = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updates = req.validatedBody;
+    const userId = req.user.id;
+
+    const task = await Task.findByPk(id);
+
+    if (!task) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.TASK_NOT_FOUND,
+      });
+    }
+
+    // Verify it's a standalone task
+    if (task.project_id !== null) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        message: 'This is not a standalone task',
+      });
+    }
+
+    // Verify user is the creator
+    if (task.created_by !== userId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        message: 'You do not have permission to update this task',
+      });
+    }
+
+    Object.assign(task, updates);
+    await task.save();
+
+    await publishTask('activity-log', {
+      level: 'info',
+      message: `Standalone task updated: ${task.title} by ${req.user.email}`,
+    });
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Standalone task updated successfully',
+      data: task,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteStandaloneTask = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const task = await Task.findByPk(id);
+
+    if (!task) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.TASK_NOT_FOUND,
+      });
+    }
+
+    // Verify it's a standalone task
+    if (task.project_id !== null) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        message: 'This is not a standalone task',
+      });
+    }
+
+    // Verify user is the creator
+    if (task.created_by !== userId) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        message: 'You do not have permission to delete this task',
+      });
+    }
+
+    await task.destroy();
+
+    await publishTask('activity-log', {
+      level: 'info',
+      message: `Standalone task deleted: ${task.title} by ${req.user.email}`,
+    });
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Standalone task deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createTask,
   getTasks,
@@ -769,4 +1044,8 @@ module.exports = {
   unassignUsers,
   getUserTasks,
   getMyProjectsTasks,
+  createStandaloneTask,
+  getStandaloneTasks,
+  updateStandaloneTask,
+  deleteStandaloneTask,
 };

@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image, Animated, ScrollView, Platform } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, Stack } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Camera, User, Mail, Save } from 'lucide-react-native';
+import { Camera, User, Mail, Save, Edit2, Shield, Award, Clock } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 export default function EditProfileScreen() {
     const { user, updateProfile } = useAuth();
@@ -12,21 +13,28 @@ export default function EditProfileScreen() {
     const [profileImage, setProfileImage] = useState<string | undefined>(user?.profile_image);
     const [saving, setSaving] = useState(false);
     const router = useRouter();
-    
+
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
+    const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 500,
+                duration: 600,
                 useNativeDriver: true,
             }),
             Animated.spring(slideAnim, {
                 toValue: 0,
-                tension: 30,
-                friction: 7,
+                tension: 40,
+                friction: 8,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                tension: 40,
+                friction: 8,
                 useNativeDriver: true,
             }),
         ]).start();
@@ -77,29 +85,59 @@ export default function EditProfileScreen() {
         }
     };
 
+    const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+    }) : 'Recently';
+
     return (
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            <Stack.Screen 
-                options={{ 
+        <View style={styles.container}>
+            <LinearGradient
+                colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+                style={StyleSheet.absoluteFill}
+                locations={[0, 0.5, 1]}
+            />
+            
+            <Stack.Screen
+                options={{
                     title: 'Edit Profile',
                     headerBackTitle: 'Back',
-                    headerTintColor: '#6366F1',
-                }} 
+                    headerTintColor: '#fc350b',
+                    headerStyle: {
+                        backgroundColor: 'transparent',
+                    },
+                    headerTransparent: true,
+                }}
             />
 
-            <Animated.ScrollView 
+            <Animated.ScrollView
                 style={[
                     styles.scrollView,
                     {
+                        opacity: fadeAnim,
                         transform: [{ translateY: slideAnim }]
                     }
                 ]}
                 showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
             >
+                <View style={styles.header}>
+                    <LinearGradient
+                        colors={['#fc350b', '#a0430a']}
+                        style={styles.headerGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <View style={styles.headerContent}>
+                            <Award size={24} color="#fef1e1" />
+                            <Text style={styles.headerTitle}>Edit Your Profile</Text>
+                        </View>
+                    </LinearGradient>
+                </View>
+
                 <View style={styles.form}>
-                    <View style={styles.imageSection}>
-                        <Text style={styles.sectionTitle}>Profile Picture</Text>
-                        <TouchableOpacity 
+                    <Animated.View style={[styles.imageSection, { transform: [{ scale: scaleAnim }] }]}>
+                        <TouchableOpacity
                             style={styles.imagePicker}
                             onPress={pickImage}
                             activeOpacity={0.8}
@@ -108,34 +146,34 @@ export default function EditProfileScreen() {
                                 <Image source={{ uri: profileImage }} style={styles.profileImage} />
                             ) : (
                                 <LinearGradient
-                                    colors={['#F1F5F9', '#E2E8F0']}
+                                    colors={['#fef1e1', '#dfe8e6']}
                                     style={styles.profileImagePlaceholder}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
                                 >
-                                    <User size={40} color="#94A3B8" />
+                                    <User size={48} color="#fc350b" />
                                 </LinearGradient>
                             )}
-                            <View style={styles.cameraButton}>
+                            <BlurView intensity={80} style={styles.cameraButton}>
                                 <LinearGradient
-                                    colors={['#6366F1', '#8B5CF6']}
+                                    colors={['#fc350b', '#a0430a']}
                                     style={styles.cameraButtonGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
                                 >
-                                    <Camera size={16} color="#fff" />
+                                    <Camera size={18} color="#fef1e1" />
                                 </LinearGradient>
-                            </View>
+                            </BlurView>
                         </TouchableOpacity>
-                        <Text style={styles.imageHint}>Tap to change profile picture</Text>
-                    </View>
+                        
+                        <View style={styles.memberBadge}>
+                            <Clock size={14} color="#a0430a" />
+                            <Text style={styles.memberText}>Member since {memberSince}</Text>
+                        </View>
+                    </Animated.View>
 
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Personal Information</Text>
-                        
+
                         <View style={styles.inputGroup}>
-                            <View style={styles.inputIcon}>
-                                <User size={20} color="#64748B" />
+                            <View style={[styles.inputIcon, { backgroundColor: '#fc350b15' }]}>
+                                <User size={20} color="#fc350b" />
                             </View>
                             <View style={styles.inputWrapper}>
                                 <Text style={styles.label}>Full Name</Text>
@@ -144,15 +182,16 @@ export default function EditProfileScreen() {
                                     value={name}
                                     onChangeText={setName}
                                     placeholder="Enter your full name"
-                                    placeholderTextColor="#94A3B8"
+                                    placeholderTextColor="#a0430a60"
                                     autoCapitalize="words"
                                 />
                             </View>
+                            <Edit2 size={16} color="#fc350b" style={styles.editIcon} />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <View style={styles.inputIcon}>
-                                <Mail size={20} color="#64748B" />
+                            <View style={[styles.inputIcon, { backgroundColor: '#a0430a15' }]}>
+                                <Mail size={20} color="#a0430a" />
                             </View>
                             <View style={styles.inputWrapper}>
                                 <Text style={styles.label}>Email Address</Text>
@@ -161,8 +200,14 @@ export default function EditProfileScreen() {
                                     value={user?.email || ''}
                                     editable={false}
                                 />
-                                <Text style={styles.hint}>Email cannot be changed</Text>
                             </View>
+                            <Shield size={16} color="#10B981" style={styles.editIcon} />
+                        </View>
+
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoText}>
+                                Your email is verified and cannot be changed
+                            </Text>
                         </View>
                     </View>
 
@@ -174,36 +219,78 @@ export default function EditProfileScreen() {
                         >
                             <Text style={styles.cancelButtonText}>Cancel</Text>
                         </TouchableOpacity>
-                        
+
                         <TouchableOpacity
                             style={styles.saveButton}
                             onPress={handleUpdate}
                             disabled={saving}
                             activeOpacity={0.7}
                         >
-                            {saving ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <>
-                                    <Save size={18} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.saveButtonText}>Save Changes</Text>
-                                </>
-                            )}
+                            <LinearGradient
+                                colors={saving ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                                style={styles.saveButtonGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                {saving ? (
+                                    <ActivityIndicator color="#ffffff" />
+                                ) : (
+                                    <>
+                                        <Save size={18} color="#fef1e1" />
+                                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                                    </>
+                                )}
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
                 </View>
             </Animated.ScrollView>
-        </Animated.View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
     },
     scrollView: {
         flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 40,
+    },
+    header: {
+        marginTop: 100,
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 20,
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 8px 16px rgba(252, 53, 11, 0.2)',
+            },
+            default: {
+                shadowColor: '#fc350b',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.2,
+                shadowRadius: 12,
+                elevation: 6,
+            },
+        }),
+    },
+    headerGradient: {
+        padding: 20,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#fef1e1',
+        fontFamily: 'Inter_700Bold',
     },
     form: {
         padding: 20,
@@ -212,59 +299,60 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 32,
     },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1E293B',
-        fontFamily: 'Inter_600SemiBold',
-        marginBottom: 16,
-        alignSelf: 'flex-start',
-    },
     imagePicker: {
         position: 'relative',
-        marginBottom: 12,
+        marginBottom: 16,
     },
     profileImage: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 140,
+        height: 140,
+        borderRadius: 70,
         borderWidth: 4,
-        borderColor: '#FFFFFF',
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
+        borderColor: '#fc350b',
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 12px 24px rgba(252, 53, 11, 0.25)',
+            },
+            default: {
+                shadowColor: '#fc350b',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.25,
+                shadowRadius: 20,
+                elevation: 12,
+            },
+        }),
     },
     profileImagePlaceholder: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 140,
+        height: 140,
+        borderRadius: 70,
         borderWidth: 4,
-        borderColor: '#FFFFFF',
+        borderColor: '#fc350b',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 12px 24px rgba(252, 53, 11, 0.25)',
+            },
+            default: {
+                shadowColor: '#fc350b',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.25,
+                shadowRadius: 20,
+                elevation: 12,
+            },
+        }),
     },
     cameraButton: {
         position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 3,
-        borderColor: '#FFFFFF',
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        bottom: 5,
+        right: 5,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         overflow: 'hidden',
+        borderWidth: 3,
+        borderColor: '#fef1e1',
     },
     cameraButtonGradient: {
         width: '100%',
@@ -272,32 +360,63 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    imageHint: {
-        fontSize: 13,
-        color: '#94A3B8',
-        fontFamily: 'Inter_400Regular',
+    memberBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fef1e1',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 30,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: '#fc350b30',
+    },
+    memberText: {
+        fontSize: 14,
+        color: '#a0430a',
+        fontFamily: 'Inter_500Medium',
     },
     section: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
+        backgroundColor: '#ffffff',
+        borderRadius: 24,
         padding: 20,
-        marginBottom: 32,
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#fc350b20',
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 8px 16px rgba(160, 67, 10, 0.08)',
+            },
+            default: {
+                shadowColor: '#a0430a',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                elevation: 4,
+            },
+        }),
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#a0430a',
+        fontFamily: 'Inter_700Bold',
+        marginBottom: 20,
     },
     inputGroup: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
+        backgroundColor: '#fef1e1',
+        borderRadius: 16,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: '#fc350b30',
     },
     inputIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -306,66 +425,81 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     label: {
-        fontSize: 13,
-        color: '#64748B',
+        fontSize: 12,
+        color: '#a0430a',
         fontFamily: 'Inter_500Medium',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     input: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        padding: 14,
         fontSize: 16,
         color: '#1E293B',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
         fontFamily: 'Inter_400Regular',
+        padding: 0,
     },
     disabledInput: {
-        color: '#94A3B8',
-        backgroundColor: '#F1F5F9',
+        color: '#a0430a',
+        opacity: 0.7,
     },
-    hint: {
-        fontSize: 12,
-        color: '#94A3B8',
+    editIcon: {
+        marginRight: 12,
+    },
+    infoBox: {
+        backgroundColor: '#dfe8e6',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 8,
+    },
+    infoText: {
+        fontSize: 13,
+        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
-        marginTop: 4,
+        textAlign: 'center',
     },
     buttonGroup: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 40,
+        gap: 12,
     },
     cancelButton: {
         flex: 1,
-        padding: 18,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: '#fef1e1',
         alignItems: 'center',
-        marginRight: 12,
+        borderWidth: 1,
+        borderColor: '#fc350b30',
     },
     cancelButtonText: {
-        color: '#64748B',
+        color: '#a0430a',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',
     },
     saveButton: {
         flex: 2,
-        padding: 18,
-        borderRadius: 12,
-        backgroundColor: '#6366F1',
+        borderRadius: 16,
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                boxShadow: '0px 8px 16px rgba(252, 53, 11, 0.3)',
+            },
+            default: {
+                shadowColor: '#fc350b',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                elevation: 6,
+            },
+        }),
+    },
+    saveButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        padding: 16,
+        gap: 8,
     },
     saveButtonText: {
-        color: '#FFFFFF',
+        color: '#fef1e1',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',

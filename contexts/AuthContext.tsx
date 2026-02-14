@@ -87,10 +87,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     console.log('[AuthContext] Logout initiated');
     try {
-      await authApi.logout();
+      // Create a timeout promise to prevent hanging if server is unresponsive
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout request timed out')), 1000)
+      );
+
+      // Race API call against timeout
+      await Promise.race([authApi.logout(), timeoutPromise]);
       console.log('[AuthContext] API Logout successful');
     } catch (error) {
-      console.error('[AuthContext] Logout error:', error);
+      console.error('[AuthContext] Logout error (proceeding with local cleanup):', error);
     } finally {
       console.log('[AuthContext] Clearing local state and storage');
       setUser(null);
