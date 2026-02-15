@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Taskflow",
-    "slug": "Taskflow-nativewind",
+    "slug": "Taskflow-candy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -25,9 +25,11 @@
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "f197ef5a-6acc-4f27-8cd8-34a7e83ca5b5"
       }
-    }
+    },
+    "owner": "mariraj"
   }
 }
