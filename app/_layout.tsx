@@ -1,13 +1,16 @@
+// app/_layout.tsx
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { StyleSheet, View, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
+  const { colors, theme } = useTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,24 +30,24 @@ function RootLayoutNav() {
   if (loading) {
     return (
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={styles.loadingContainer}
         locations={[0, 0.5, 1]}
       >
         <View style={styles.loadingContent}>
-          <View style={styles.loadingLogo}>
+          <View style={[styles.loadingLogo, { shadowColor: colors.primary }]}>
             <LinearGradient
-              colors={['#fc350b', '#a0430a']}
+              colors={[colors.primary, colors.secondary]}
               style={styles.logoGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Animated.Text style={styles.logoText}>T</Animated.Text>
+              <Animated.Text style={[styles.logoText, { color: colors.textLight }]}>T</Animated.Text>
             </LinearGradient>
           </View>
-          <Animated.View style={styles.loadingBar}>
+          <Animated.View style={[styles.loadingBar, { backgroundColor: colors.border }]}>
             <LinearGradient
-              colors={['#fc350b', '#a0430a']}
+              colors={[colors.primary, colors.secondary]}
               style={styles.loadingProgress}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -57,19 +60,19 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar style="dark" backgroundColor="#fef1e1" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} />
       <Stack
         screenOptions={{
           headerStyle: styles.header,
-          headerTitleStyle: styles.headerTitle,
-          headerBackTitleStyle: styles.headerBackTitle,
-          headerTintColor: '#fc350b',
+          headerTitleStyle: [styles.headerTitle, { color: colors.text }],
+          headerBackTitleStyle: [styles.headerBackTitle, { color: colors.primary }],
+          headerTintColor: colors.primary,
           headerShadowVisible: false,
-          contentStyle: styles.content,
+          contentStyle: { backgroundColor: colors.background },
           headerBackground: () => (
             <LinearGradient
-              colors={['#ffffff', '#fef1e1']}
-              style={styles.headerGradient}
+              colors={[colors.cardLight, colors.cardDark]}
+              style={[styles.headerGradient, { borderBottomColor: colors.border }]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             />
@@ -98,7 +101,6 @@ function RootLayoutNav() {
             animation: 'slide_from_bottom',
           }}
         />
-        {/* Additional screens for better navigation */}
         <Stack.Screen 
           name="task/[id]" 
           options={{
@@ -147,6 +149,14 @@ function RootLayoutNav() {
             animation: 'slide_from_bottom',
           }}
         />
+        <Stack.Screen 
+          name="profile/edit" 
+          options={{
+            title: 'Edit Profile',
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
     </>
   );
@@ -157,7 +167,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <ThemeProvider>
+        <RootLayoutNav />
+      </ThemeProvider>
     </AuthProvider>
   );
 }
@@ -177,7 +189,6 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 24,
     overflow: 'hidden',
-    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -191,13 +202,11 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#fef1e1',
     fontFamily: 'Inter_700Bold',
   },
   loadingBar: {
     width: 200,
     height: 4,
-    backgroundColor: '#fc350b20',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -215,20 +224,14 @@ const styles = StyleSheet.create({
   headerGradient: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#fc350b20',
   },
   headerTitle: {
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     fontSize: 18,
     letterSpacing: -0.3,
   },
   headerBackTitle: {
-    color: '#fc350b',
     fontFamily: 'Inter_500Medium',
     fontSize: 15,
-  },
-  content: {
-    backgroundColor: 'transparent',
   },
 });

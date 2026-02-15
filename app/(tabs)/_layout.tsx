@@ -28,7 +28,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Workspaces',
+          title: ' ',
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
@@ -46,7 +46,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: 'Tasks',
+          title: ' ',
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
@@ -64,7 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
+          title: ' ',
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
@@ -82,7 +82,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Settings',
+          title: ' ',
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient

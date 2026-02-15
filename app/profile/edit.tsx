@@ -1,7 +1,9 @@
+// app/profile/edit.tsx
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image, Animated, ScrollView, Platform } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, Stack } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Camera, User, Mail, Save, Edit2, Shield, Award, Clock } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +11,7 @@ import { BlurView } from 'expo-blur';
 
 export default function EditProfileScreen() {
     const { user, updateProfile } = useAuth();
+    const { colors, theme } = useTheme();
     const [name, setName] = useState(user?.name ?? '');
     const [profileImage, setProfileImage] = useState<string | undefined>(user?.profile_image);
     const [saving, setSaving] = useState(false);
@@ -41,28 +44,35 @@ export default function EditProfileScreen() {
     }, []);
 
     const pickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Please enable camera roll permissions to upload a profile picture.');
-            return;
-        }
-
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-            base64: true,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            const asset = result.assets[0];
-            if (asset.base64) {
-                const base64Image = `data:image/jpeg;base64,${asset.base64}`;
-                setProfileImage(base64Image);
-            } else {
-                setProfileImage(asset.uri);
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'Please enable camera roll permissions to upload a profile picture.');
+                return;
             }
+
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+                base64: true,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                if (asset.base64) {
+                    const base64Image = `data:image/jpeg;base64,${asset.base64}`;
+                    setProfileImage(base64Image);
+                    console.log('Image selected (base64)');
+                } else {
+                    setProfileImage(asset.uri);
+                    console.log('Image selected (uri):', asset.uri);
+                }
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('Error', 'Failed to pick image. Please try again.');
         }
     };
 
@@ -73,13 +83,21 @@ export default function EditProfileScreen() {
         }
 
         setSaving(true);
-        const response = await updateProfile({ name, profile_image: profileImage });
+        console.log('Updating profile with:', { name, profile_image: profileImage });
+        
+        const response = await updateProfile({ 
+            name: name.trim(), 
+            profile_image: profileImage 
+        });
+        
         setSaving(false);
 
         if (response.success) {
-            Alert.alert('Success', 'Profile updated successfully', [
-                { text: 'OK', onPress: () => router.back() }
-            ]);
+            Alert.alert(
+                'Success', 
+                'Profile updated successfully', 
+                [{ text: 'OK', onPress: () => router.back() }]
+            );
         } else {
             Alert.alert('Error', response.message || 'Failed to update profile');
         }
@@ -91,9 +109,9 @@ export default function EditProfileScreen() {
     }) : 'Recently';
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <LinearGradient
-                colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+                colors={[colors.cardDark, colors.background, colors.darkBg]}
                 style={StyleSheet.absoluteFill}
                 locations={[0, 0.5, 1]}
             />
@@ -102,7 +120,7 @@ export default function EditProfileScreen() {
                 options={{
                     title: 'Edit Profile',
                     headerBackTitle: 'Back',
-                    headerTintColor: '#fc350b',
+                    headerTintColor: colors.primary,
                     headerStyle: {
                         backgroundColor: 'transparent',
                     },
@@ -121,16 +139,16 @@ export default function EditProfileScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.header}>
+                <View style={[styles.header, { shadowColor: colors.primary }]}>
                     <LinearGradient
-                        colors={['#fc350b', '#a0430a']}
+                        colors={[colors.primary, colors.secondary]}
                         style={styles.headerGradient}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
                         <View style={styles.headerContent}>
-                            <Award size={24} color="#fef1e1" />
-                            <Text style={styles.headerTitle}>Edit Your Profile</Text>
+                            <Award size={24} color={colors.textLight} />
+                            <Text style={[styles.headerTitle, { color: colors.textLight }]}>Edit Your Profile</Text>
                         </View>
                     </LinearGradient>
                 </View>
@@ -143,69 +161,73 @@ export default function EditProfileScreen() {
                             activeOpacity={0.8}
                         >
                             {profileImage ? (
-                                <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                                <Image 
+                                    source={{ uri: profileImage }} 
+                                    style={[styles.profileImage, { borderColor: colors.primary, shadowColor: colors.primary }]}
+                                    onError={(error) => console.log('Image loading error in edit screen:', error.nativeEvent.error)}
+                                />
                             ) : (
                                 <LinearGradient
-                                    colors={['#fef1e1', '#dfe8e6']}
-                                    style={styles.profileImagePlaceholder}
+                                    colors={[colors.cardLight, colors.cardDark]}
+                                    style={[styles.profileImagePlaceholder, { borderColor: colors.primary, shadowColor: colors.primary }]}
                                 >
-                                    <User size={48} color="#fc350b" />
+                                    <User size={48} color={colors.primary} />
                                 </LinearGradient>
                             )}
-                            <BlurView intensity={80} style={styles.cameraButton}>
+                            <BlurView intensity={80} tint={theme} style={styles.cameraButton}>
                                 <LinearGradient
-                                    colors={['#fc350b', '#a0430a']}
+                                    colors={[colors.primary, colors.secondary]}
                                     style={styles.cameraButtonGradient}
                                 >
-                                    <Camera size={18} color="#fef1e1" />
+                                    <Camera size={18} color={colors.textLight} />
                                 </LinearGradient>
                             </BlurView>
                         </TouchableOpacity>
                         
-                        <View style={styles.memberBadge}>
-                            <Clock size={14} color="#a0430a" />
-                            <Text style={styles.memberText}>Member since {memberSince}</Text>
+                        <View style={[styles.memberBadge, { backgroundColor: colors.badgeBackground, borderColor: colors.border }]}>
+                            <Clock size={14} color={colors.secondary} />
+                            <Text style={[styles.memberText, { color: colors.textSecondary }]}>Member since {memberSince}</Text>
                         </View>
                     </Animated.View>
 
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Personal Information</Text>
+                    <View style={[styles.section, { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Personal Information</Text>
 
-                        <View style={styles.inputGroup}>
-                            <View style={[styles.inputIcon, { backgroundColor: '#fc350b15' }]}>
-                                <User size={20} color="#fc350b" />
+                        <View style={[styles.inputGroup, { backgroundColor: colors.badgeBackground, borderColor: colors.border }]}>
+                            <View style={[styles.inputIcon, { backgroundColor: colors.primary + '20' }]}>
+                                <User size={20} color={colors.primary} />
                             </View>
                             <View style={styles.inputWrapper}>
-                                <Text style={styles.label}>Full Name</Text>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { color: colors.text }]}
                                     value={name}
                                     onChangeText={setName}
                                     placeholder="Enter your full name"
-                                    placeholderTextColor="#a0430a60"
+                                    placeholderTextColor={colors.textSecondary + '60'}
                                     autoCapitalize="words"
                                 />
                             </View>
-                            <Edit2 size={16} color="#fc350b" style={styles.editIcon} />
+                            <Edit2 size={16} color={colors.primary} style={styles.editIcon} />
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <View style={[styles.inputIcon, { backgroundColor: '#a0430a15' }]}>
-                                <Mail size={20} color="#a0430a" />
+                        <View style={[styles.inputGroup, { backgroundColor: colors.badgeBackground, borderColor: colors.border }]}>
+                            <View style={[styles.inputIcon, { backgroundColor: colors.secondary + '20' }]}>
+                                <Mail size={20} color={colors.secondary} />
                             </View>
                             <View style={styles.inputWrapper}>
-                                <Text style={styles.label}>Email Address</Text>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>Email Address</Text>
                                 <TextInput
-                                    style={[styles.input, styles.disabledInput]}
+                                    style={[styles.input, styles.disabledInput, { color: colors.textSecondary }]}
                                     value={user?.email || ''}
                                     editable={false}
                                 />
                             </View>
-                            <Shield size={16} color="#10B981" style={styles.editIcon} />
+                            <Shield size={16} color={colors.success} style={styles.editIcon} />
                         </View>
 
-                        <View style={styles.infoBox}>
-                            <Text style={styles.infoText}>
+                        <View style={[styles.infoBox, { backgroundColor: colors.border }]}>
+                            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
                                 Your email is verified and cannot be changed
                             </Text>
                         </View>
@@ -213,31 +235,31 @@ export default function EditProfileScreen() {
 
                     <View style={styles.buttonGroup}>
                         <TouchableOpacity
-                            style={styles.cancelButton}
+                            style={[styles.cancelButton, { backgroundColor: colors.badgeBackground, borderColor: colors.border }]}
                             onPress={() => router.back()}
                             activeOpacity={0.7}
                         >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                            <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.saveButton}
+                            style={[styles.saveButton, { shadowColor: colors.primary }]}
                             onPress={handleUpdate}
                             disabled={saving}
                             activeOpacity={0.7}
                         >
                             <LinearGradient
-                                colors={saving ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                                colors={saving ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
                                 style={styles.saveButtonGradient}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
                                 {saving ? (
-                                    <ActivityIndicator color="#ffffff" />
+                                    <ActivityIndicator color={colors.textLight} />
                                 ) : (
                                     <>
-                                        <Save size={18} color="#fef1e1" />
-                                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                                        <Save size={18} color={colors.textLight} />
+                                        <Text style={[styles.saveButtonText, { color: colors.textLight }]}>Save Changes</Text>
                                     </>
                                 )}
                             </LinearGradient>
@@ -270,7 +292,6 @@ const styles = StyleSheet.create({
                 boxShadow: '0px 8px 16px rgba(252, 53, 11, 0.2)',
             },
             default: {
-                shadowColor: '#fc350b',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.2,
                 shadowRadius: 12,
@@ -289,7 +310,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#fef1e1',
         fontFamily: 'Inter_700Bold',
     },
     form: {
@@ -308,13 +328,11 @@ const styles = StyleSheet.create({
         height: 140,
         borderRadius: 70,
         borderWidth: 4,
-        borderColor: '#fc350b',
         ...Platform.select({
             web: {
                 boxShadow: '0px 12px 24px rgba(252, 53, 11, 0.25)',
             },
             default: {
-                shadowColor: '#fc350b',
                 shadowOffset: { width: 0, height: 8 },
                 shadowOpacity: 0.25,
                 shadowRadius: 20,
@@ -327,7 +345,6 @@ const styles = StyleSheet.create({
         height: 140,
         borderRadius: 70,
         borderWidth: 4,
-        borderColor: '#fc350b',
         justifyContent: 'center',
         alignItems: 'center',
         ...Platform.select({
@@ -335,7 +352,6 @@ const styles = StyleSheet.create({
                 boxShadow: '0px 12px 24px rgba(252, 53, 11, 0.25)',
             },
             default: {
-                shadowColor: '#fc350b',
                 shadowOffset: { width: 0, height: 8 },
                 shadowOpacity: 0.25,
                 shadowRadius: 20,
@@ -363,32 +379,26 @@ const styles = StyleSheet.create({
     memberBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fef1e1',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 30,
         gap: 8,
         borderWidth: 1,
-        borderColor: '#fc350b30',
     },
     memberText: {
         fontSize: 14,
-        color: '#a0430a',
         fontFamily: 'Inter_500Medium',
     },
     section: {
-        backgroundColor: '#ffffff',
         borderRadius: 24,
         padding: 20,
         marginBottom: 24,
         borderWidth: 1,
-        borderColor: '#fc350b20',
         ...Platform.select({
             web: {
                 boxShadow: '0px 8px 16px rgba(160, 67, 10, 0.08)',
             },
             default: {
-                shadowColor: '#a0430a',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.08,
                 shadowRadius: 12,
@@ -399,7 +409,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#a0430a',
         fontFamily: 'Inter_700Bold',
         marginBottom: 20,
     },
@@ -407,11 +416,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 16,
-        backgroundColor: '#fef1e1',
         borderRadius: 16,
         padding: 8,
         borderWidth: 1,
-        borderColor: '#fc350b30',
     },
     inputIcon: {
         width: 48,
@@ -426,32 +433,27 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 12,
-        color: '#a0430a',
         fontFamily: 'Inter_500Medium',
         marginBottom: 4,
     },
     input: {
         fontSize: 16,
-        color: '#1E293B',
         fontFamily: 'Inter_400Regular',
         padding: 0,
     },
     disabledInput: {
-        color: '#a0430a',
         opacity: 0.7,
     },
     editIcon: {
         marginRight: 12,
     },
     infoBox: {
-        backgroundColor: '#dfe8e6',
         borderRadius: 12,
         padding: 12,
         marginTop: 8,
     },
     infoText: {
         fontSize: 13,
-        color: '#a0430a',
         fontFamily: 'Inter_400Regular',
         textAlign: 'center',
     },
@@ -463,13 +465,10 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         borderRadius: 16,
-        backgroundColor: '#fef1e1',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#fc350b30',
     },
     cancelButtonText: {
-        color: '#a0430a',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',
@@ -483,7 +482,6 @@ const styles = StyleSheet.create({
                 boxShadow: '0px 8px 16px rgba(252, 53, 11, 0.3)',
             },
             default: {
-                shadowColor: '#fc350b',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 12,
@@ -499,7 +497,6 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     saveButtonText: {
-        color: '#fef1e1',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',

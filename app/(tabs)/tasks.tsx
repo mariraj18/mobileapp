@@ -1,3 +1,4 @@
+// app/(tabs)/tasks.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -9,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
@@ -29,6 +31,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { taskApi } from '@/utils/api/tasks';
 import { Task } from '@/utils/api/tasks';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TaskWithProject extends Task {
   project?: {
@@ -42,6 +45,7 @@ interface TaskWithProject extends Task {
 export default function TasksScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [tasks, setTasks] = useState<TaskWithProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,21 +101,21 @@ export default function TasksScreen() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'URGENT':
-      case 'HIGH': return '#fc350b';
-      case 'MEDIUM': return '#a0430a';
-      case 'LOW': return '#f89b7a';
-      default: return '#dfe8e6';
+      case 'HIGH': return colors.primary;
+      case 'MEDIUM': return colors.secondary;
+      case 'LOW': return colors.tertiary;
+      default: return colors.border;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'DONE':
-        return <CheckCircle2 size={18} color="#f89b7a" />;
+        return <CheckCircle2 size={18} color={colors.tertiary} />;
       case 'IN_PROGRESS':
-        return <Circle size={18} color="#fc350b" />;
+        return <Circle size={18} color={colors.primary} />;
       default:
-        return <Circle size={18} color="#a0430a" />;
+        return <Circle size={18} color={colors.secondary} />;
     }
   };
 
@@ -161,13 +165,13 @@ export default function TasksScreen() {
       }}
     >
       <TouchableOpacity
-        style={styles.taskCard}
+        style={[styles.taskCard, { shadowColor: colors.shadow }]}
         onPress={() => router.push(`/task/${item.id}`)}
         activeOpacity={0.7}
       >
         <LinearGradient
-          colors={['#ffffff', '#fef1e1']}
-          style={styles.cardGradient}
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.cardGradient, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
@@ -178,9 +182,9 @@ export default function TasksScreen() {
               </Text>
             </View>
             {item.due_date && (
-              <View style={styles.dateContainer}>
-                <Calendar size={12} color="#a0430a" />
-                <Text style={styles.dateText}>
+              <View style={[styles.dateContainer, { backgroundColor: colors.badgeBackground }]}>
+                <Calendar size={12} color={colors.secondary} />
+                <Text style={[styles.dateText, { color: colors.textSecondary }]}>
                   {new Date(item.due_date).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric'
@@ -190,29 +194,30 @@ export default function TasksScreen() {
             )}
           </View>
 
-          <Text style={styles.taskTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
           
           {item.description ? (
-            <Text style={styles.taskDescription} numberOfLines={2}>
+            <Text style={[styles.taskDescription, { color: colors.textSecondary }]} numberOfLines={2}>
               {item.description}
             </Text>
           ) : null}
 
           <View style={styles.taskMeta}>
-            <View style={styles.projectTag}>
-              <Text style={styles.projectTagText}>
+            <View style={[styles.projectTag, { backgroundColor: colors.badgeBackground }]}>
+              <Text style={[styles.projectTagText, { color: colors.textSecondary }]}>
                 {item.project?.name || '📋 Personal'}
               </Text>
             </View>
           </View>
 
-          <View style={styles.taskFooter}>
+          <View style={[styles.taskFooter, { borderTopColor: colors.border }]}>
             <View style={styles.statusContainer}>
               {getStatusIcon(item.status)}
               <Text style={[
                 styles.statusText,
-                item.status === 'DONE' && styles.completedText,
-                item.status === 'IN_PROGRESS' && styles.inProgressText
+                { color: colors.textSecondary },
+                item.status === 'DONE' && { color: colors.tertiary },
+                item.status === 'IN_PROGRESS' && { color: colors.primary }
               ]}>
                 {item.status === 'DONE' ? 'Completed' :
                  item.status === 'IN_PROGRESS' ? 'In Progress' : 'To Do'}
@@ -220,8 +225,8 @@ export default function TasksScreen() {
             </View>
 
             {item.status !== 'DONE' && (
-              <TouchableOpacity style={styles.quickAction}>
-                <CheckCircle2 size={18} color="#fc350b" />
+              <TouchableOpacity style={[styles.quickAction, { backgroundColor: colors.badgeBackground }]}>
+                <CheckCircle2 size={18} color={colors.primary} />
               </TouchableOpacity>
             )}
           </View>
@@ -234,10 +239,18 @@ export default function TasksScreen() {
 
   const FilterChip = ({ label, value }: { label: string; value: string }) => (
     <TouchableOpacity
-      style={[styles.filterChip, selectedFilter === value && styles.filterChipActive]}
+      style={[
+        styles.filterChip, 
+        { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow },
+        selectedFilter === value && { backgroundColor: colors.primary, borderColor: colors.primary }
+      ]}
       onPress={() => setSelectedFilter(value)}
     >
-      <Text style={[styles.filterChipText, selectedFilter === value && styles.filterChipTextActive]}>
+      <Text style={[
+        styles.filterChipText, 
+        { color: colors.textSecondary },
+        selectedFilter === value && { color: colors.textLight }
+      ]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -245,41 +258,41 @@ export default function TasksScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <LinearGradient
-          colors={['#fef1e1', '#ffffff']}
+          colors={[colors.cardDark, colors.background]}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color="#fc350b" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={styles.gradientBackground}
         locations={[0, 0.6, 1]}
       >
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <View>
-            <Text style={styles.headerTitle}>My Tasks</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>My Tasks</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
               {stats.active} active · {stats.dueToday} due today
             </Text>
           </View>
           
           <TouchableOpacity 
-            style={styles.createButton}
+            style={[styles.createButton, { shadowColor: colors.primary }]}
             onPress={() => router.push('/task/create')}
           >
             <LinearGradient
-              colors={['#fc350b', '#a0430a']}
+              colors={[colors.primary, colors.secondary]}
               style={styles.createButtonGradient}
             >
-              <Plus size={20} color="#fef1e1" />
+              <Plus size={20} color={colors.textLight} />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -287,56 +300,60 @@ export default function TasksScreen() {
         {/* Stats Cards */}
         <Animated.View style={[styles.statsContainer, { opacity: fadeAnim }]}>
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.statCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.statCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Target size={20} color="#fc350b" />
-            <Text style={styles.statNumber}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Target size={20} color={colors.primary} />
+            <Text style={[styles.statNumber, { color: colors.text }]}>{stats.active}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Active</Text>
           </LinearGradient>
 
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.statCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.statCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Calendar size={20} color="#a0430a" />
-            <Text style={styles.statNumber}>{stats.dueToday}</Text>
-            <Text style={styles.statLabel}>Due Today</Text>
+            <Calendar size={20} color={colors.secondary} />
+            <Text style={[styles.statNumber, { color: colors.text }]}>{stats.dueToday}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Due Today</Text>
           </LinearGradient>
 
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.statCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.statCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <CheckCircle2 size={20} color="#f89b7a" />
-            <Text style={styles.statNumber}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <CheckCircle2 size={20} color={colors.tertiary} />
+            <Text style={[styles.statNumber, { color: colors.text }]}>{stats.completed}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Completed</Text>
           </LinearGradient>
         </Animated.View>
 
         {/* Search Bar */}
         <Animated.View style={[styles.searchContainer, { transform: [{ scale: searchAnim }] }]}>
-          <View style={styles.searchWrapper}>
-            <Search size={18} color="#a0430a" />
+          <View style={[styles.searchWrapper, { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow }]}>
+            <Search size={18} color={colors.textSecondary} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.text }]}
               placeholder="Search tasks..."
-              placeholderTextColor="#a0430a60"
+              placeholderTextColor={colors.textSecondary + '60'}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
           <TouchableOpacity 
-            style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+            style={[
+              styles.filterButton, 
+              { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow },
+              showFilters && { backgroundColor: colors.primary, borderColor: colors.primary }
+            ]}
             onPress={() => setShowFilters(!showFilters)}
           >
-            <Filter size={18} color={showFilters ? '#fef1e1' : '#a0430a'} />
+            <Filter size={18} color={showFilters ? colors.textLight : colors.textSecondary} />
           </TouchableOpacity>
         </Animated.View>
 
@@ -365,35 +382,35 @@ export default function TasksScreen() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              tintColor="#fc350b"
-              colors={['#fc350b']}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <LinearGradient
-                colors={['#ffffff', '#fef1e1']}
-                style={styles.emptyIllustration}
+                colors={[colors.cardLight, colors.cardDark]}
+                style={[styles.emptyIllustration, { borderColor: colors.border }]}
               >
-                <ListTodo size={48} color="#fc350b" />
+                <ListTodo size={48} color={colors.primary} />
               </LinearGradient>
-              <Text style={styles.emptyTitle}>No tasks found</Text>
-              <Text style={styles.emptySubtitle}>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No tasks found</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 {searchQuery 
                   ? "No tasks match your search"
                   : "Create your first task to get started"}
               </Text>
               {!searchQuery && (
                 <TouchableOpacity
-                  style={styles.emptyButton}
+                  style={[styles.emptyButton, { shadowColor: colors.primary }]}
                   onPress={() => router.push('/task/create')}
                 >
                   <LinearGradient
-                    colors={['#fc350b', '#a0430a']}
+                    colors={[colors.primary, colors.secondary]}
                     style={styles.emptyButtonGradient}
                   >
-                    <Plus size={18} color="#fef1e1" />
-                    <Text style={styles.emptyButtonText}>Create Task</Text>
+                    <Plus size={18} color={colors.textLight} />
+                    <Text style={[styles.emptyButtonText, { color: colors.textLight }]}>Create Task</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -428,13 +445,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
   },
   createButton: {
@@ -442,7 +457,6 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -466,8 +480,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -476,13 +488,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginVertical: 6,
   },
   statLabel: {
     fontSize: 11,
-    color: '#fc350b',
     fontFamily: 'Inter_500Medium',
   },
   searchContainer: {
@@ -495,12 +505,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -511,27 +518,19 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingLeft: 10,
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
   },
   filterButton: {
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-  },
-  filterButtonActive: {
-    backgroundColor: '#fc350b',
-    borderColor: '#fc350b',
   },
   filterSection: {
     paddingHorizontal: 24,
@@ -545,27 +544,16 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#ffffff',
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  filterChipActive: {
-    backgroundColor: '#fc350b',
-    borderColor: '#fc350b',
-  },
   filterChipText: {
     fontSize: 12,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
-  },
-  filterChipTextActive: {
-    color: '#fef1e1',
   },
   listContent: {
     padding: 24,
@@ -575,7 +563,6 @@ const styles = StyleSheet.create({
   taskCard: {
     marginBottom: 16,
     borderRadius: 20,
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -585,7 +572,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   taskHeader: {
     flexDirection: 'row',
@@ -607,26 +593,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#fef1e1',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   dateText: {
     fontSize: 11,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   taskTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 6,
   },
   taskDescription: {
     fontSize: 13,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     marginBottom: 12,
     lineHeight: 18,
@@ -636,7 +618,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   projectTag: {
-    backgroundColor: '#fef1e1',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -644,7 +625,6 @@ const styles = StyleSheet.create({
   },
   projectTagText: {
     fontSize: 11,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   taskFooter: {
@@ -652,7 +632,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#fc350b20',
     paddingTop: 12,
   },
   statusContainer: {
@@ -662,20 +641,12 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
-  },
-  completedText: {
-    color: '#f89b7a',
-  },
-  inProgressText: {
-    color: '#fc350b',
   },
   quickAction: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fef1e1',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -691,18 +662,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     borderWidth: 2,
-    borderColor: '#fc350b30',
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 20,
@@ -712,7 +680,6 @@ const styles = StyleSheet.create({
   emptyButton: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -726,11 +693,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyButtonText: {
-    color: '#fef1e1',
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
   },
 });
-
-import { ScrollView } from 'react-native';

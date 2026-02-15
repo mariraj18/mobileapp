@@ -20,7 +20,7 @@ const taskRoutes = require('./src/routes/taskRoutes');
 const commentRoutes = require('./src/routes/commentRoutes');
 const attachmentRoutes = require('./src/routes/attachmentRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
-const userRoutes = require('./src/routes/userRoutes'); // New route for user lookup
+const userRoutes = require('./src/routes/userRoutes');
 
 // WebSocket server setup
 class WebSocketServer {
@@ -128,24 +128,57 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS' // Skip rate limiter for OPTIONS requests
 });
 
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
-  credentials: false,
-}));
+
+// ========== FIXED CORS CONFIGURATION - MUST BE FIRST ==========
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    // Get allowed origins from environment variable or use defaults
+    const allowedOrigins = process.env.CORS_ORIGIN 
+      ? process.env.CORS_ORIGIN.split(',') 
+      : ['http://localhost:8081', 'http://localhost:19006', 'http://localhost:3000'];
+    
+    // Always allow your Render domain
+    if (origin.includes('mobileapp-ocya.onrender.com')) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is allowed
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+// Apply CORS middleware to ALL routes BEFORE any other middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly for all routes
+app.options('*', cors(corsOptions));
+// ===============================================================
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Debug middleware for profile updates
+// Debug middleware for auth endpoints
 app.use((req, res, next) => {
-  if (req.path.includes('/auth/profile')) {
+  if (req.path.includes('/auth/')) {
     logger.info(`[DEBUG] Incoming ${req.method} ${req.path}`);
-    logger.info(`[DEBUG] Content-Length: ${req.headers['content-length']}`);
-    logger.info(`[DEBUG] Body Keys: ${Object.keys(req.body).join(', ')}`);
-    if (req.body.profile_image) {
-      logger.info(`[DEBUG] profile_image length: ${req.body.profile_image.length}`);
+    logger.info(`[DEBUG] Origin: ${req.headers.origin}`);
+    logger.info(`[DEBUG] Content-Type: ${req.headers['content-type']}`);
+    if (req.method === 'OPTIONS') {
+      logger.info(`[DEBUG] OPTIONS preflight request for ${req.path}`);
     }
   }
   next();
@@ -155,7 +188,7 @@ app.use(morgan('combined', { stream: { write: (message) => logger.info(message.t
 app.use(passport.initialize());
 require('./config/passport')(passport);
 
-// API Routes
+// API Routes - Rate limiter now skips OPTIONS automatically
 app.use('/api/auth', limiter, authRoutes);
 app.use(`/api/${API_VERSION}/workspaces`, workspaceRoutes);
 app.use(`/api/${API_VERSION}/projects`, projectRoutes);
@@ -163,7 +196,7 @@ app.use(`/api/${API_VERSION}/tasks`, taskRoutes);
 app.use(`/api/${API_VERSION}/comments`, commentRoutes);
 app.use(`/api/${API_VERSION}/attachments`, attachmentRoutes);
 app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
-app.use(`/api/${API_VERSION}/users`, userRoutes); // New user routes
+app.use(`/api/${API_VERSION}/users`, userRoutes);
 
 // Health check endpoint with WebSocket status
 app.get('/', (req, res) => {

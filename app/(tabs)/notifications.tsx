@@ -1,11 +1,14 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Animated, RefreshControl } from 'react-native';
+// app/(tabs)/notifications.tsx
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Animated, RefreshControl, ScrollView } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { notificationApi, Notification } from '@/utils/api/notifications';
 import { Bell, Check, Clock, AlertCircle, MessageSquare, UserPlus, Calendar, CheckCircle, XCircle, Filter } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function NotificationsScreen() {
+  const { colors, theme } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,26 +68,26 @@ export default function NotificationsScreen() {
 
   const getNotificationIcon = (type: string) => {
     const icons = {
-      'TASK_ASSIGNMENT': <AlertCircle size={22} color="#fc350b" />,
-      'COMMENT': <MessageSquare size={22} color="#a0430a" />,
-      'PROJECT_INVITE': <UserPlus size={22} color="#fc350b" />,
-      'PROJECT_COMPLETED': <CheckCircle size={22} color="#f89b7a" />,
-      'DUE_DATE': <Clock size={22} color="#a0430a" />,
-      'PRIORITY': <AlertCircle size={22} color="#fc350b" />,
+      'TASK_ASSIGNMENT': <AlertCircle size={22} color={colors.primary} />,
+      'COMMENT': <MessageSquare size={22} color={colors.secondary} />,
+      'PROJECT_INVITE': <UserPlus size={22} color={colors.primary} />,
+      'PROJECT_COMPLETED': <CheckCircle size={22} color={colors.tertiary} />,
+      'DUE_DATE': <Clock size={22} color={colors.secondary} />,
+      'PRIORITY': <AlertCircle size={22} color={colors.primary} />,
     };
-    return icons[type as keyof typeof icons] || <Bell size={22} color="#a0430a" />;
+    return icons[type as keyof typeof icons] || <Bell size={22} color={colors.secondary} />;
   };
 
   const getNotificationColor = (type: string) => {
-    const colors = {
-      'TASK_ASSIGNMENT': '#fc350b20',
-      'COMMENT': '#a0430a20',
-      'PROJECT_INVITE': '#f89b7a20',
-      'PROJECT_COMPLETED': '#dfe8e620',
-      'DUE_DATE': '#a0430a20',
-      'PRIORITY': '#fc350b20',
+    const colors_map = {
+      'TASK_ASSIGNMENT': colors.primary + '20',
+      'COMMENT': colors.secondary + '20',
+      'PROJECT_INVITE': colors.tertiary + '20',
+      'PROJECT_COMPLETED': colors.border,
+      'DUE_DATE': colors.secondary + '20',
+      'PRIORITY': colors.primary + '20',
     };
-    return colors[type as keyof typeof colors] || '#fef1e1';
+    return colors_map[type as keyof typeof colors_map] || colors.badgeBackground;
   };
 
   const filteredNotifications = filter === 'all' 
@@ -116,8 +119,8 @@ export default function NotificationsScreen() {
         activeOpacity={0.7}
       >
         <LinearGradient
-          colors={!item.read ? ['#ffffff', '#fef1e1'] : ['#ffffff', '#ffffff']}
-          style={styles.cardGradient}
+          colors={!item.read ? [colors.cardLight, colors.cardDark] : [colors.cardLight, colors.cardLight]}
+          style={[styles.cardGradient, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
@@ -127,13 +130,13 @@ export default function NotificationsScreen() {
             </View>
             
             <View style={styles.textContainer}>
-              <Text style={[styles.message, !item.read && styles.unreadText]}>
+              <Text style={[styles.message, !item.read && styles.unreadText, { color: colors.textSecondary }]}>
                 {item.message}
               </Text>
               
               <View style={styles.metaContainer}>
-                <Clock size={12} color="#a0430a" />
-                <Text style={styles.timeText}>
+                <Clock size={12} color={colors.secondary} />
+                <Text style={[styles.timeText, { color: colors.textSecondary }]}>
                   {new Date(item.created_at).toLocaleDateString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -143,7 +146,7 @@ export default function NotificationsScreen() {
                 </Text>
                 
                 {!item.read && (
-                  <View style={styles.unreadDot} />
+                  <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
                 )}
               </View>
             </View>
@@ -153,12 +156,20 @@ export default function NotificationsScreen() {
     </Animated.View>
   );
 
-  const FilterChip = ({ label, value, icon }: any) => (
+  const FilterChip = ({ label, value }: { label: string; value: string }) => (
     <TouchableOpacity
-      style={[styles.filterChip, filter === value && styles.filterChipActive]}
+      style={[
+        styles.filterChip, 
+        { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow },
+        filter === value && { backgroundColor: colors.primary, borderColor: colors.primary }
+      ]}
       onPress={() => setFilter(value)}
     >
-      <Text style={[styles.filterChipText, filter === value && styles.filterChipTextActive]}>
+      <Text style={[
+        styles.filterChipText, 
+        { color: colors.textSecondary },
+        filter === value && { color: colors.textLight }
+      ]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -166,46 +177,46 @@ export default function NotificationsScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <LinearGradient
-          colors={['#fef1e1', '#ffffff']}
+          colors={[colors.cardDark, colors.background]}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color="#fc350b" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={styles.gradientBackground}
         locations={[0, 0.6, 1]}
       >
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View>
-            <Text style={styles.title}>Notifications</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
             </Text>
           </View>
 
           {unreadCount > 0 && (
             <TouchableOpacity
-              style={styles.markAllButton}
+              style={[styles.markAllButton, { shadowColor: colors.primary }]}
               onPress={handleMarkAllRead}
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={['#fc350b', '#a0430a']}
+                colors={[colors.primary, colors.secondary]}
                 style={styles.markAllGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Check size={16} color="#fef1e1" />
-                <Text style={styles.markAllText}>Mark all read</Text>
+                <Check size={16} color={colors.textLight} />
+                <Text style={[styles.markAllText, { color: colors.textLight }]}>Mark all read</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -236,8 +247,8 @@ export default function NotificationsScreen() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              tintColor="#fc350b"
-              colors={['#fc350b']}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
           }
           ListEmptyComponent={
@@ -248,13 +259,13 @@ export default function NotificationsScreen() {
               ]}
             >
               <LinearGradient
-                colors={['#ffffff', '#fef1e1']}
-                style={styles.emptyIllustration}
+                colors={[colors.cardLight, colors.cardDark]}
+                style={[styles.emptyIllustration, { borderColor: colors.border }]}
               >
-                <Bell size={48} color="#fc350b" />
+                <Bell size={48} color={colors.primary} />
               </LinearGradient>
-              <Text style={styles.emptyTitle}>All caught up!</Text>
-              <Text style={styles.emptySubtitle}>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>All caught up!</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 No notifications to show
               </Text>
             </Animated.View>
@@ -288,19 +299,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
   },
   markAllButton: {
     borderRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -315,7 +323,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   markAllText: {
-    color: '#fef1e1',
     fontSize: 13,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
@@ -331,27 +338,16 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#ffffff',
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  filterChipActive: {
-    backgroundColor: '#fc350b',
-    borderColor: '#fc350b',
-  },
   filterChipText: {
     fontSize: 13,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
-  },
-  filterChipTextActive: {
-    color: '#fef1e1',
   },
   list: {
     padding: 20,
@@ -363,7 +359,6 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 20,
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -377,7 +372,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   cardContent: {
     flexDirection: 'row',
@@ -395,13 +389,11 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     lineHeight: 20,
     marginBottom: 8,
   },
   unreadText: {
-    color: '#fc350b',
     fontWeight: '500',
     fontFamily: 'Inter_500Medium',
   },
@@ -412,7 +404,6 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     opacity: 0.7,
   },
@@ -420,7 +411,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#fc350b',
     marginLeft: 4,
   },
   emptyState: {
@@ -436,23 +426,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     borderWidth: 2,
-    borderColor: '#fc350b30',
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 20,
     opacity: 0.7,
   },
 });
-
-import { ScrollView } from 'react-native';

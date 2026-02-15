@@ -1,394 +1,346 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image, Animated, ScrollView, Platform } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
-import { useRouter, Stack } from 'expo-router';
+// app/(tabs)/profile.tsx
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, RefreshControl, Alert, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Camera, User, Mail, Save } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { useTheme } from '@/contexts/ThemeContext';
+import { User, Settings, LogOut, Award, Clock, Calendar, Briefcase, Moon, Sun } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
-export default function EditProfileScreen() {
-    const { user, updateProfile } = useAuth();
-    const [name, setName] = useState(user?.name ?? '');
-    const [profileImage, setProfileImage] = useState<string | undefined>(user?.profile_image);
-    const [saving, setSaving] = useState(false);
-    const router = useRouter();
+export default function ProfileScreen() {
+  const { user, logout, refreshUser } = useAuth();
+  const { theme, toggleTheme, colors } = useTheme();
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(30)).current;
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Profile screen focused - refreshing user data');
+      refreshUser();
+      setImageError(false);
+    }, [refreshUser])
+  );
 
-    useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 500,
-                useNativeDriver: true,
-            }),
-            Animated.spring(slideAnim, {
-                toValue: 0,
-                tension: 30,
-                friction: 7,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    }, []);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshUser();
+    setImageError(false);
+    setRefreshing(false);
+  }, [refreshUser]);
 
-    const pickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Please enable camera roll permissions to upload a profile picture.');
-            return;
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          }
         }
-
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-            base64: true,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            const asset = result.assets[0];
-            if (asset.base64) {
-                const base64Image = `data:image/jpeg;base64,${asset.base64}`;
-                setProfileImage(base64Image);
-            } else {
-                setProfileImage(asset.uri);
-            }
-        }
-    };
-
-    const handleUpdate = async () => {
-        if (!name.trim()) {
-            Alert.alert('Error', 'Please enter your name');
-            return;
-        }
-
-        setSaving(true);
-        const response = await updateProfile({ name, profile_image: profileImage });
-        setSaving(false);
-
-        if (response.success) {
-            Alert.alert('Success', 'Profile updated successfully', [
-                { text: 'OK', onPress: () => router.back() }
-            ]);
-        } else {
-            Alert.alert('Error', response.message || 'Failed to update profile');
-        }
-    };
-
-    return (
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            <Stack.Screen
-                options={{
-                    title: 'Edit Profile',
-                    headerBackTitle: 'Back',
-                    headerTintColor: '#6366F1',
-                }}
-            />
-
-            <Animated.ScrollView
-                style={[
-                    styles.scrollView,
-                    {
-                        transform: [{ translateY: slideAnim }]
-                    }
-                ]}
-                showsVerticalScrollIndicator={false}
-            >
-                <View style={styles.form}>
-                    <View style={styles.imageSection}>
-                        <Text style={styles.sectionTitle}>Profile Picture</Text>
-                        <TouchableOpacity
-                            style={styles.imagePicker}
-                            onPress={pickImage}
-                            activeOpacity={0.8}
-                        >
-                            {profileImage ? (
-                                <Image source={{ uri: profileImage }} style={styles.profileImage} />
-                            ) : (
-                                <LinearGradient
-                                    colors={['#F1F5F9', '#E2E8F0']}
-                                    style={styles.profileImagePlaceholder}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <User size={40} color="#94A3B8" />
-                                </LinearGradient>
-                            )}
-                            <View style={styles.cameraButton}>
-                                <LinearGradient
-                                    colors={['#6366F1', '#8B5CF6']}
-                                    style={styles.cameraButtonGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <Camera size={16} color="#fff" />
-                                </LinearGradient>
-                            </View>
-                        </TouchableOpacity>
-                        <Text style={styles.imageHint}>Tap to change profile picture</Text>
-                    </View>
-
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Personal Information</Text>
-
-                        <View style={styles.inputGroup}>
-                            <View style={styles.inputIcon}>
-                                <User size={20} color="#64748B" />
-                            </View>
-                            <View style={styles.inputWrapper}>
-                                <Text style={styles.label}>Full Name</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={name}
-                                    onChangeText={setName}
-                                    placeholder="Enter your full name"
-                                    placeholderTextColor="#94A3B8"
-                                    autoCapitalize="words"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <View style={styles.inputIcon}>
-                                <Mail size={20} color="#64748B" />
-                            </View>
-                            <View style={styles.inputWrapper}>
-                                <Text style={styles.label}>Email Address</Text>
-                                <TextInput
-                                    style={[styles.input, styles.disabledInput]}
-                                    value={user?.email || ''}
-                                    editable={false}
-                                />
-                                <Text style={styles.hint}>Email cannot be changed</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.buttonGroup}>
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => router.back()}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.saveButton}
-                            onPress={handleUpdate}
-                            disabled={saving}
-                            activeOpacity={0.7}
-                        >
-                            {saving ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <>
-                                    <Save size={18} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.saveButtonText}>Save Changes</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Animated.ScrollView>
-        </Animated.View>
+      ]
     );
+  };
+
+  const handleImageError = () => {
+    console.log('Failed to load profile image:', user?.profile_image);
+    setImageError(true);
+  };
+
+  const memberSince = user?.created_at 
+    ? new Date(user.created_at).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+      }) 
+    : 'Recently';
+
+  return (
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
+    >
+      <LinearGradient
+        colors={[colors.cardDark, colors.background]}
+        style={styles.gradient}
+      />
+
+      {/* Theme Toggle Button */}
+      <TouchableOpacity
+        style={[styles.themeToggle, { backgroundColor: colors.cardLight, borderColor: colors.border }]}
+        onPress={toggleTheme}
+        activeOpacity={0.7}
+      >
+        {theme === 'light' ? (
+          <Moon size={22} color={colors.primary} />
+        ) : (
+          <Sun size={22} color={colors.primary} />
+        )}
+      </TouchableOpacity>
+
+      <View style={styles.header}>
+        <View style={[styles.profileImageContainer, { shadowColor: colors.primary }]}>
+          {user?.profile_image && !imageError ? (
+            <Image 
+              source={{ uri: user.profile_image }} 
+              style={[styles.profileImage, { borderColor: colors.textLight }]} 
+              key={user.profile_image}
+              onError={handleImageError}
+              onLoad={() => console.log('Image loaded successfully')}
+            />
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              style={[styles.profileImagePlaceholder, { borderColor: colors.textLight }]}
+            >
+              <User size={50} color={colors.textLight} />
+            </LinearGradient>
+          )}
+        </View>
+        
+        <Text style={[styles.name, { color: colors.text }]}>{user?.name || 'User'}</Text>
+        <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email || ''}</Text>
+        
+        <View style={[styles.memberBadge, { backgroundColor: colors.badgeBackground, borderColor: colors.border }]}>
+          <Calendar size={16} color={colors.secondary} />
+          <Text style={[styles.memberText, { color: colors.textSecondary }]}>Member since {memberSince}</Text>
+        </View>
+      </View>
+
+      <View style={styles.statsContainer}>
+        <LinearGradient
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.statCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Briefcase size={24} color={colors.primary} />
+          <Text style={[styles.statNumber, { color: colors.text }]}>12</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Projects</Text>
+        </LinearGradient>
+
+        <LinearGradient
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.statCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Award size={24} color={colors.secondary} />
+          <Text style={[styles.statNumber, { color: colors.text }]}>48</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tasks</Text>
+        </LinearGradient>
+
+        <LinearGradient
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.statCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Clock size={24} color={colors.tertiary} />
+          <Text style={[styles.statNumber, { color: colors.text }]}>3</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Workspaces</Text>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.menuContainer}>
+        <TouchableOpacity 
+          style={[styles.menuItem, { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow }]}
+          onPress={() => router.push('/profile/edit')}
+        >
+          <Settings size={22} color={colors.secondary} />
+          <Text style={[styles.menuText, { color: colors.text }]}>Edit Profile</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.menuItem, styles.logoutItem, { backgroundColor: colors.cardLight, borderColor: colors.primary + '40', shadowColor: colors.shadow }]}
+          onPress={handleLogout}
+        >
+          <LogOut size={22} color={colors.primary} />
+          <Text style={[styles.menuText, { color: colors.primary }]}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-    },
-    scrollView: {
-        flex: 1,
-    },
-    form: {
-        padding: 20,
-    },
-    imageSection: {
-        alignItems: 'center',
-        marginBottom: 32,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1E293B',
-        fontFamily: 'Inter_600SemiBold',
-        marginBottom: 16,
-        alignSelf: 'flex-start',
-    },
-    imagePicker: {
-        position: 'relative',
-        marginBottom: 12,
-    },
-    profileImage: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        borderWidth: 4,
-        borderColor: '#FFFFFF',
-        ...Platform.select({
-            web: {
-                boxShadow: '0px 8px 16px rgba(15, 23, 42, 0.15)',
-            },
-            default: {
-                shadowColor: '#0F172A',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.15,
-                shadowRadius: 16,
-                elevation: 8,
-            },
-        }),
-    },
-    profileImagePlaceholder: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        borderWidth: 4,
-        borderColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#0F172A',
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
+  themeToggle: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    zIndex: 10,
+    ...Platform.select({
+      web: {
+        shadowColor: '#a0430a',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      default: {
+        shadowColor: '#a0430a',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      },
+    }),
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  profileImageContainer: {
+    marginBottom: 16,
+    ...Platform.select({
+      web: {
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
-    },
-    cameraButton: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 3,
-        borderColor: '#FFFFFF',
-        ...Platform.select({
-            web: {
-                boxShadow: '0px 4px 8px rgba(99, 102, 241, 0.3)',
-            },
-            default: {
-                shadowColor: '#6366F1',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
-            },
-        }),
-        overflow: 'hidden',
-    },
-    cameraButtonGradient: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    imageHint: {
-        fontSize: 13,
-        color: '#94A3B8',
-        fontFamily: 'Inter_400Regular',
-    },
-    section: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 32,
-        ...Platform.select({
-            web: {
-                boxShadow: '0px 4px 8px rgba(15, 23, 42, 0.08)',
-            },
-            default: {
-                shadowColor: '#0F172A',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.08,
-                shadowRadius: 8,
-                elevation: 4,
-            },
-        }),
-    },
-    inputGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    inputIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    inputWrapper: {
-        flex: 1,
-    },
-    label: {
-        fontSize: 13,
-        color: '#64748B',
-        fontFamily: 'Inter_500Medium',
-        marginBottom: 6,
-    },
-    input: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        padding: 14,
-        fontSize: 16,
-        color: '#1E293B',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        fontFamily: 'Inter_400Regular',
-    },
-    disabledInput: {
-        color: '#94A3B8',
-        backgroundColor: '#F1F5F9',
-    },
-    hint: {
-        fontSize: 12,
-        color: '#94A3B8',
-        fontFamily: 'Inter_400Regular',
-        marginTop: 4,
-    },
-    buttonGroup: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 40,
-    },
-    cancelButton: {
-        flex: 1,
-        padding: 18,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    cancelButtonText: {
-        color: '#64748B',
-        fontSize: 16,
-        fontWeight: '600',
-        fontFamily: 'Inter_600SemiBold',
-    },
-    saveButton: {
-        flex: 2,
-        padding: 18,
-        borderRadius: 12,
-        backgroundColor: '#6366F1',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#6366F1',
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+      },
+      default: {
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 12,
+      },
+    }),
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+  },
+  profileImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 4,
+  },
+  email: {
+    fontSize: 16,
+    fontFamily: 'Inter_400Regular',
+    opacity: 0.8,
+    marginBottom: 12,
+  },
+  memberBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 30,
+    gap: 8,
+    borderWidth: 1,
+  },
+  memberText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    marginVertical: 30,
+  },
+  statCard: {
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 100,
+    borderWidth: 1,
+    ...Platform.select({
+      web: {
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 6,
-    },
-    saveButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-        fontFamily: 'Inter_600SemiBold',
-    },
+      },
+      default: {
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    }),
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    opacity: 0.8,
+  },
+  menuContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+    borderWidth: 1,
+    ...Platform.select({
+      web: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      default: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+      },
+    }),
+  },
+  menuText: {
+    fontSize: 16,
+    fontFamily: 'Inter_500Medium',
+    flex: 1,
+  },
+  logoutItem: {
+    marginTop: 20,
+  },
 });

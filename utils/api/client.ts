@@ -87,6 +87,8 @@ class ApiClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ refreshToken }),
+        mode: 'cors',
+        credentials: 'omit',
       });
 
       const data = await response.json();
@@ -123,9 +125,12 @@ class ApiClient {
     try {
       console.log(`[API] ${options.method || 'GET'} ${baseURL}${endpoint}`);
 
+      // FIXED: Added mode: 'cors' and credentials: 'omit'
       const response = await fetch(`${baseURL}${endpoint}`, {
         ...options,
         headers,
+        mode: 'cors',
+        credentials: 'omit',
       });
 
       const data = await response.json();
@@ -209,10 +214,13 @@ class ApiClient {
     }
 
     try {
+      // FIXED: Added mode: 'cors' and credentials: 'omit' for file uploads too
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
         headers,
         body: file,
+        mode: 'cors',
+        credentials: 'omit',
       });
 
       const data = await response.json();

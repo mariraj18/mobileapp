@@ -9,6 +9,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateProfile: (data: { name?: string; profile_image?: string }) => Promise<{ success: boolean; message?: string }>;
+  refreshUser: () => Promise<void>; // Add this
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -87,12 +88,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     console.log('[AuthContext] Logout initiated');
     try {
-      // Create a timeout promise to prevent hanging if server is unresponsive
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Logout request timed out')), 1000)
       );
 
-      // Race API call against timeout
       await Promise.race([authApi.logout(), timeoutPromise]);
       console.log('[AuthContext] API Logout successful');
     } catch (error) {
@@ -112,6 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.success) {
         console.log('[AuthContext] UpdateProfile Success', response.data);
         setUser(response.data);
+        // Also update AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(response.data));
         return { success: true };
       } else {
         console.error('[AuthContext] UpdateProfile Failed', response.message);
@@ -126,8 +127,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Add this new function
+  const refreshUser = async () => {
+    try {
+      const response = await authApi.getMe();
+      if (response.success) {
+        setUser(response.data);
+        await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      updateProfile,
+      refreshUser // Add this
+    }}>
       {children}
     </AuthContext.Provider>
   );
