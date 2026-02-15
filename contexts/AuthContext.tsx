@@ -5,10 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (data: LoginData) => Promise<{ success: boolean; message?: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>;
+  login: (data: LoginData) => Promise<{ success: boolean; message?: string; status?: number }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; message?: string; status?: number }>;
   logout: () => Promise<void>;
-  updateProfile: (data: { name?: string; profile_image?: string }) => Promise<{ success: boolean; message?: string }>;
+  updateProfile: (data: { name?: string; profile_image?: string }) => Promise<{ success: boolean; message?: string; status?: number }>;
   refreshUser: () => Promise<void>; // Add this
 }
 
@@ -52,14 +52,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           ['accessToken', response.data.accessToken],
           ['refreshToken', response.data.refreshToken],
         ]);
-        return { success: true };
+        return { success: true, status: response.status };
       } else {
-        return { success: false, message: response.message };
+        return { success: false, message: response.message, status: response.status };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'An error occurred',
+        message: error.message || 'An error occurred',
+        status: error.status
       };
     }
   };
@@ -73,14 +74,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           ['accessToken', response.data.accessToken],
           ['refreshToken', response.data.refreshToken],
         ]);
-        return { success: true };
+        return { success: true, status: response.status };
       } else {
-        return { success: false, message: response.message };
+        return { success: false, message: response.message, status: response.status };
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'An error occurred',
+        message: error.message || 'An error occurred',
+        status: error.status
       };
     }
   };
@@ -141,12 +143,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      login, 
-      register, 
-      logout, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
       updateProfile,
       refreshUser // Add this
     }}>

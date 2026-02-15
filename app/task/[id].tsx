@@ -44,6 +44,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Attachment {
   id: string;
@@ -55,6 +56,7 @@ interface Attachment {
 }
 
 export default function TaskDetailsScreen() {
+  const { colors, theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [task, setTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -270,37 +272,37 @@ export default function TaskDetailsScreen() {
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
-      return <ImageIcon size={20} color="#fc350b" />;
+      return <ImageIcon size={20} color={colors.primary} />;
     }
-    return <File size={20} color="#a0430a" />;
+    return <File size={20} color={colors.secondary} />;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DONE': return '#10B981';
-      case 'IN_PROGRESS': return '#fc350b';
-      case 'TODO': return '#a0430a';
-      default: return '#dfe8e6';
+      case 'DONE': return colors.success;
+      case 'IN_PROGRESS': return colors.primary;
+      case 'TODO': return colors.secondary;
+      default: return colors.border;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'HIGH': return '#fc350b';
-      case 'URGENT': return '#a0430a';
-      case 'MEDIUM': return '#f89b7a';
-      case 'LOW': return '#10B981';
-      default: return '#dfe8e6';
+      case 'HIGH': return colors.primary;
+      case 'URGENT': return colors.secondary;
+      case 'MEDIUM': return colors.tertiary;
+      case 'LOW': return colors.success;
+      default: return colors.border;
     }
   };
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
-      case 'HIGH': return <Flag size={14} color="#fc350b" />;
-      case 'URGENT': return <AlertCircle size={14} color="#a0430a" />;
-      case 'MEDIUM': return <Flag size={14} color="#f89b7a" />;
-      case 'LOW': return <Flag size={14} color="#10B981" />;
-      default: return <Flag size={14} color="#dfe8e6" />;
+      case 'HIGH': return <Flag size={14} color={colors.primary} />;
+      case 'URGENT': return <AlertCircle size={14} color={colors.secondary} />;
+      case 'MEDIUM': return <Flag size={14} color={colors.tertiary} />;
+      case 'LOW': return <Flag size={14} color={colors.success} />;
+      default: return <Flag size={14} color={colors.border} />;
     }
   };
 
@@ -310,15 +312,15 @@ export default function TaskDetailsScreen() {
     return (
       <View key={comment.id} style={[styles.commentContainer, { marginLeft: level * 16 }]}>
         <LinearGradient
-          colors={isReply ? ['#fef1e1', '#ffffff'] : ['#ffffff', '#fef1e1']}
-          style={[styles.commentCard, isReply && styles.replyCard]}
+          colors={isReply ? [colors.cardDark, colors.cardLight] : [colors.cardLight, colors.cardDark]}
+          style={[styles.commentCard, isReply && styles.replyCard, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.commentHeader}>
             <View style={styles.commentUser}>
               <LinearGradient
-                colors={['#fc350b', '#a0430a']}
+                colors={[colors.primary, colors.secondary]}
                 style={styles.userAvatar}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -328,18 +330,18 @@ export default function TaskDetailsScreen() {
                 </Text>
               </LinearGradient>
               <View>
-                <Text style={styles.commentUserName}>{comment.user.name}</Text>
+                <Text style={[styles.commentUserName, { color: colors.text }]}>{comment.user.name}</Text>
                 {comment.replyToUser && (
                   <View style={styles.replyInfo}>
-                    <Reply size={10} color="#a0430a" />
-                    <Text style={styles.replyToText}>
+                    <Reply size={10} color={colors.primary} />
+                    <Text style={[styles.replyToText, { color: colors.textSecondary }]}>
                       replying to {comment.replyToUser.name}
                     </Text>
                   </View>
                 )}
               </View>
             </View>
-            <Text style={styles.commentDate}>
+            <Text style={[styles.commentDate, { color: colors.textSecondary }]}>
               {new Date(comment.created_at).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -348,12 +350,12 @@ export default function TaskDetailsScreen() {
               })}
             </Text>
           </View>
-          <Text style={styles.commentContent}>{comment.content}</Text>
+          <Text style={[styles.commentContent, { color: colors.text }]}>{comment.content}</Text>
           <TouchableOpacity
             style={styles.replyButton}
             onPress={() => setReplyingTo(comment)}
           >
-            <Text style={styles.replyButtonText}>Reply</Text>
+            <Text style={[styles.replyButtonText, { color: colors.primary }]}>Reply</Text>
           </TouchableOpacity>
         </LinearGradient>
 
@@ -364,37 +366,37 @@ export default function TaskDetailsScreen() {
 
   const renderAttachment = ({ item }: { item: Attachment }) => (
     <LinearGradient
-      colors={['#ffffff', '#fef1e1']}
-      style={styles.attachmentItem}
+      colors={[colors.cardLight, colors.cardDark]}
+      style={[styles.attachmentItem, { borderColor: colors.border }]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <View style={styles.attachmentInfo}>
-        <View style={[styles.attachmentIcon, { backgroundColor: '#fc350b15' }]}>
+        <View style={[styles.attachmentIcon, { backgroundColor: colors.primary + '15' }]}>
           {getFileIcon(item.file_type)}
         </View>
         <View style={styles.attachmentDetails}>
-          <Text style={styles.attachmentName} numberOfLines={1}>
+          <Text style={[styles.attachmentName, { color: colors.text }]} numberOfLines={1}>
             {item.original_filename}
           </Text>
-          <Text style={styles.attachmentMeta}>
+          <Text style={[styles.attachmentMeta, { color: colors.textSecondary }]}>
             {formatFileSize(item.file_size)} • Uploaded {new Date(item.uploaded_at).toLocaleDateString()}
           </Text>
         </View>
       </View>
       <View style={styles.attachmentActions}>
         <TouchableOpacity
-          style={[styles.attachmentButton, { backgroundColor: '#fc350b15' }]}
+          style={[styles.attachmentButton, { backgroundColor: colors.primary + '15' }]}
           onPress={() => attachmentApi.download(item.id)}
         >
-          <Download size={16} color="#fc350b" />
+          <Download size={16} color={colors.primary} />
         </TouchableOpacity>
         {item.uploaded_by === user?.id && (
           <TouchableOpacity
-            style={[styles.attachmentButton, { backgroundColor: '#fc350b15' }]}
+            style={[styles.attachmentButton, { backgroundColor: colors.primary + '15' }]}
             onPress={() => handleDeleteAttachment(item.id)}
           >
-            <Trash2 size={16} color="#a0430a" />
+            <Trash2 size={16} color={colors.secondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -403,38 +405,38 @@ export default function TaskDetailsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#fef1e1', '#ffffff']} style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fc350b" />
+      <LinearGradient colors={[colors.cardDark, colors.cardLight]} style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </LinearGradient>
     );
   }
 
   if (!task) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Task not found</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.primary }]}>Task not found</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={StyleSheet.absoluteFill}
         locations={[0, 0.5, 1]}
       />
-      
+
       <Stack.Screen
         options={{
           title: isStandaloneTask ? 'Personal Task' : 'Task Details',
           headerBackTitle: 'Back',
-          headerTintColor: '#fc350b',
+          headerTintColor: colors.primary,
           headerStyle: {
-            backgroundColor: '#fef1e1',
+            backgroundColor: colors.background,
           },
           headerTitleStyle: {
-            color: '#a0430a',
+            color: colors.text,
             fontWeight: '600',
           },
         }}
@@ -453,8 +455,8 @@ export default function TaskDetailsScreen() {
         {/* Task Header */}
         <View style={styles.taskHeader}>
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.taskHeaderGradient}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.taskHeaderGradient, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
@@ -476,10 +478,10 @@ export default function TaskDetailsScreen() {
 
               {!task.project?.is_completed && (
                 <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: '#fc350b15' }]}
+                  style={[styles.editButton, { backgroundColor: colors.primary + '15' }]}
                   onPress={() => setEditMode(!editMode)}
                 >
-                  <Edit2 size={18} color="#fc350b" />
+                  <Edit2 size={18} color={colors.primary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -487,46 +489,46 @@ export default function TaskDetailsScreen() {
             {editMode ? (
               <View style={styles.editForm}>
                 <TextInput
-                  style={styles.editTitleInput}
+                  style={[styles.editTitleInput, { color: colors.text, borderBottomColor: colors.primary }]}
                   value={editTitle}
                   onChangeText={setEditTitle}
                   placeholder="Task title"
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                 />
                 <TextInput
-                  style={styles.editDescInput}
+                  style={[styles.editDescInput, { color: colors.text, borderColor: colors.border }]}
                   value={editDesc}
                   onChangeText={setEditDesc}
                   placeholder="Description"
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                   multiline
                 />
                 <View style={styles.editActions}>
                   <TouchableOpacity
                     onPress={() => setEditMode(false)}
-                    style={[styles.cancelButton, { backgroundColor: '#dfe8e6' }]}
+                    style={[styles.cancelButton, { backgroundColor: colors.border }]}
                   >
-                    <Text style={styles.cancelText}>Cancel</Text>
+                    <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={handleSaveDetails}
                     style={styles.saveButton}
                   >
                     <LinearGradient
-                      colors={['#10B981', '#059669']}
+                      colors={[colors.success, colors.success + 'CC']}
                       style={styles.saveButtonGradient}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                     >
-                      <Text style={styles.saveText}>Save</Text>
+                      <Text style={[styles.saveText, { color: colors.textLight }]}>Save</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <>
-                <Text style={styles.title}>{task.title}</Text>
-                <Text style={styles.description}>
+                <Text style={[styles.title, { color: colors.text }]}>{task.title}</Text>
+                <Text style={[styles.description, { color: colors.textSecondary }]}>
                   {task.description || 'No description provided.'}
                 </Text>
               </>
@@ -534,19 +536,19 @@ export default function TaskDetailsScreen() {
 
             <View style={styles.dueDateSection}>
               <View style={styles.sectionHeader}>
-                <Calendar size={16} color="#a0430a" />
-                <Text style={styles.sectionTitle}>Due Date</Text>
+                <Calendar size={16} color={colors.secondary} />
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Due Date</Text>
               </View>
               <TouchableOpacity
-                style={[styles.dateButton, { backgroundColor: '#fef1e1' }]}
+                style={[styles.dateButton, { backgroundColor: colors.cardDark, borderColor: colors.border }]}
                 onPress={() => setShowDatePicker(true)}
                 disabled={task.project?.is_completed}
               >
-                <View style={styles.dateIconContainer}>
-                  <Clock size={16} color="#fc350b" />
+                <View style={[styles.dateIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                  <Clock size={16} color={colors.primary} />
                 </View>
                 {selectedDate ? (
-                  <Text style={styles.dateText}>
+                  <Text style={[styles.dateText, { color: colors.text }]}>
                     {selectedDate.toLocaleDateString('en-US', {
                       weekday: 'long',
                       month: 'long',
@@ -555,9 +557,9 @@ export default function TaskDetailsScreen() {
                     })}
                   </Text>
                 ) : (
-                  <Text style={styles.datePlaceholder}>Set due date</Text>
+                  <Text style={[styles.datePlaceholder, { color: colors.textSecondary }]}>Set due date</Text>
                 )}
-                <ChevronRight size={16} color="#fc350b" />
+                <ChevronRight size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
           </LinearGradient>
@@ -579,16 +581,18 @@ export default function TaskDetailsScreen() {
                   onPress={() => handleUpdateStatus(s)}
                 >
                   <LinearGradient
-                    colors={task.status === s ? [getStatusColor(s), getStatusColor(s) + '80'] : ['#ffffff', '#fef1e1']}
+                    colors={task.status === s ? [getStatusColor(s), getStatusColor(s) + '80'] : [colors.cardLight, colors.cardDark]}
                     style={styles.statusButtonGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    {task.status === s && <Check size={14} color="#ffffff" style={styles.statusCheck} />}
+                    {task.status === s && <Check size={14} color={colors.textLight} style={styles.statusCheck} />}
                     <Text
                       style={[
                         styles.statusButtonText,
+                        { color: colors.textSecondary },
                         task.status === s && styles.statusButtonTextActive,
+                        task.status === s && { color: colors.textLight }
                       ]}
                     >
                       {s === 'IN_PROGRESS' ? 'DOING' : s}
@@ -604,8 +608,8 @@ export default function TaskDetailsScreen() {
         {!isStandaloneTask && (
           <View style={styles.attachmentsSection}>
             <View style={styles.sectionHeader}>
-              <Paperclip size={16} color="#a0430a" />
-              <Text style={styles.sectionTitle}>Attachments ({attachments.length})</Text>
+              <Paperclip size={16} color={colors.secondary} />
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Attachments ({attachments.length})</Text>
             </View>
 
             {attachments.length > 0 ? (
@@ -617,13 +621,13 @@ export default function TaskDetailsScreen() {
               />
             ) : (
               <LinearGradient
-                colors={['#ffffff', '#fef1e1']}
-                style={styles.emptyAttachments}
+                colors={[colors.cardLight, colors.cardDark]}
+                style={[styles.emptyAttachments, { borderColor: colors.border }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Paperclip size={32} color="#fc350b40" />
-                <Text style={styles.emptyAttachmentsText}>No attachments yet</Text>
+                <Paperclip size={32} color={colors.primary + '40'} />
+                <Text style={[styles.emptyAttachmentsText, { color: colors.textSecondary }]}>No attachments yet</Text>
               </LinearGradient>
             )}
 
@@ -634,17 +638,17 @@ export default function TaskDetailsScreen() {
                 disabled={uploading}
               >
                 <LinearGradient
-                  colors={['#fc350b15', '#a0430a15']}
+                  colors={[colors.primary + '15', colors.secondary + '15']}
                   style={styles.uploadButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   {uploading ? (
-                    <ActivityIndicator size="small" color="#fc350b" />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   ) : (
                     <>
-                      <Paperclip size={16} color="#fc350b" />
-                      <Text style={styles.uploadButtonText}>Upload File</Text>
+                      <Paperclip size={16} color={colors.primary} />
+                      <Text style={[styles.uploadButtonText, { color: colors.primary }]}>Upload File</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -657,24 +661,24 @@ export default function TaskDetailsScreen() {
         {!isStandaloneTask && (
           <View style={styles.commentsSection}>
             <View style={styles.commentsHeader}>
-              <MessageSquare size={16} color="#a0430a" />
-              <Text style={styles.sectionTitle}>
+              <MessageSquare size={16} color={colors.secondary} />
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
                 Comments ({comments.length})
               </Text>
             </View>
 
             {replyingTo && (
               <LinearGradient
-                colors={['#fc350b15', '#a0430a15']}
+                colors={[colors.primary + '15', colors.secondary + '15']}
                 style={styles.replyingTo}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.replyingToText}>
+                <Text style={[styles.replyingToText, { color: colors.primary }]}>
                   Replying to {replyingTo.user.name}
                 </Text>
                 <TouchableOpacity onPress={() => setReplyingTo(null)}>
-                  <X size={16} color="#a0430a" />
+                  <X size={16} color={colors.secondary} />
                 </TouchableOpacity>
               </LinearGradient>
             )}
@@ -683,14 +687,14 @@ export default function TaskDetailsScreen() {
               comments.map((comment) => renderComment(comment))
             ) : (
               <LinearGradient
-                colors={['#ffffff', '#fef1e1']}
-                style={styles.emptyComments}
+                colors={[colors.cardLight, colors.cardDark]}
+                style={[styles.emptyComments, { borderColor: colors.border }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <MessageSquare size={32} color="#fc350b40" />
-                <Text style={styles.emptyCommentsText}>No comments yet</Text>
-                <Text style={styles.emptyCommentsSubtext}>Be the first to comment</Text>
+                <MessageSquare size={32} color={colors.primary + '40'} />
+                <Text style={[styles.emptyCommentsText, { color: colors.text }]}>No comments yet</Text>
+                <Text style={[styles.emptyCommentsSubtext, { color: colors.textSecondary }]}>Be the first to comment</Text>
               </LinearGradient>
             )}
 
@@ -711,20 +715,20 @@ export default function TaskDetailsScreen() {
           ]}
         >
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.inputBarGradient}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.inputBarGradient, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.inputWrapper}>
               <TextInput
-                style={styles.commentInput}
+                style={[styles.commentInput, { color: colors.text, backgroundColor: colors.cardDark }]}
                 placeholder={
                   replyingTo
                     ? `Reply to ${replyingTo.user.name}...`
                     : 'Add a comment...'
                 }
-                placeholderTextColor="#a0430a60"
+                placeholderTextColor={colors.textSecondary + '60'}
                 value={newComment}
                 onChangeText={setNewComment}
                 multiline
@@ -738,15 +742,15 @@ export default function TaskDetailsScreen() {
                 ]}
               >
                 <LinearGradient
-                  colors={newComment.trim() ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#c0cfcb']}
+                  colors={newComment.trim() ? [colors.primary, colors.secondary] : [colors.border, colors.border]}
                   style={styles.sendButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   {sending ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
+                    <ActivityIndicator size="small" color={colors.textLight} />
                   ) : (
-                    <Send size={18} color="#ffffff" />
+                    <Send size={18} color={colors.textLight} />
                   )}
                 </LinearGradient>
               </TouchableOpacity>
@@ -796,12 +800,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#fc350b',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
   },
   headerTop: {
     flexDirection: 'row',
@@ -856,23 +854,18 @@ const styles = StyleSheet.create({
   editTitleInput: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     borderBottomWidth: 2,
-    borderBottomColor: '#fc350b',
     paddingVertical: 8,
   },
   editDescInput: {
     fontSize: 16,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     borderWidth: 1,
-    borderColor: '#fc350b30',
     borderRadius: 12,
     padding: 16,
     minHeight: 100,
     textAlignVertical: 'top',
-    backgroundColor: '#fef1e1',
   },
   editActions: {
     flexDirection: 'row',
@@ -908,14 +901,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginBottom: 8,
     lineHeight: 32,
   },
   description: {
     fontSize: 15,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     lineHeight: 22,
     marginBottom: 20,
@@ -924,7 +915,6 @@ const styles = StyleSheet.create({
   dueDateSection: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#fc350b20',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -935,7 +925,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
   },
   dateButton: {
@@ -945,13 +934,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   dateIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#fc350b15',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -959,13 +946,11 @@ const styles = StyleSheet.create({
   dateText: {
     flex: 1,
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   datePlaceholder: {
     flex: 1,
     fontSize: 14,
-    color: '#a0430a60',
     fontFamily: 'Inter_400Regular',
   },
   actionsSection: {
@@ -983,6 +968,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
+  statusButtonActive: {
+    borderWidth: 0,
+  },
   statusButtonGradient: {
     paddingVertical: 12,
     paddingHorizontal: 8,
@@ -997,7 +985,6 @@ const styles = StyleSheet.create({
   statusButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
   },
   statusButtonTextActive: {
@@ -1015,7 +1002,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   attachmentInfo: {
     flexDirection: 'row',
@@ -1036,13 +1022,11 @@ const styles = StyleSheet.create({
   attachmentName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
     marginBottom: 2,
   },
   attachmentMeta: {
     fontSize: 11,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     opacity: 0.7,
   },
@@ -1062,13 +1046,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#fc350b20',
     borderStyle: 'dashed',
   },
   emptyAttachmentsText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   uploadButton: {
@@ -1083,12 +1065,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   uploadButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fc350b',
     fontFamily: 'Inter_600SemiBold',
   },
   commentsSection: {
@@ -1109,11 +1089,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   replyingToText: {
     fontSize: 13,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   emptyComments: {
@@ -1121,19 +1099,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#fc350b20',
     borderStyle: 'dashed',
   },
   emptyCommentsText: {
     marginTop: 8,
     fontSize: 15,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
   },
   emptyCommentsSubtext: {
     fontSize: 13,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     opacity: 0.7,
   },
@@ -1144,11 +1119,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   replyCard: {
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   commentHeader: {
     flexDirection: 'row',
@@ -1178,7 +1151,6 @@ const styles = StyleSheet.create({
   commentUserName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
   },
   replyInfo: {
@@ -1189,7 +1161,6 @@ const styles = StyleSheet.create({
   },
   replyToText: {
     fontSize: 11,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     opacity: 0.7,
   },
@@ -1201,7 +1172,6 @@ const styles = StyleSheet.create({
   },
   commentContent: {
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     lineHeight: 20,
     marginBottom: 8,
@@ -1226,8 +1196,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#fc350b30',
-    shadowColor: '#fc350b',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -1240,16 +1209,13 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#fef1e1',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   sendButton: {
     width: 44,

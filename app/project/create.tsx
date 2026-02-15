@@ -19,8 +19,10 @@ import { BlurView } from 'expo-blur';
 import { useAuth } from '@/contexts/AuthContext';
 import { projectApi } from '@/utils/api/projects';
 import { workspaceApi, WorkspaceMember } from '@/utils/api/workspaces';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function CreateProjectScreen() {
+  const { colors, theme } = useTheme();
   const router = useRouter();
   const { workspaceId } = useLocalSearchParams();
   const { user } = useAuth();
@@ -96,9 +98,9 @@ export default function CreateProjectScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={StyleSheet.absoluteFill}
         locations={[0, 0.5, 1]}
       />
@@ -107,7 +109,7 @@ export default function CreateProjectScreen() {
         options={{
           title: 'Create Project',
           headerBackTitle: 'Cancel',
-          headerTintColor: '#fc350b',
+          headerTintColor: colors.primary,
           headerStyle: {
             backgroundColor: 'transparent',
           },
@@ -115,39 +117,39 @@ export default function CreateProjectScreen() {
         }}
       />
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <LinearGradient
-            colors={['#fc350b', '#a0430a']}
-            style={styles.headerGradient}
+            colors={[colors.primary, colors.secondary]}
+            style={[styles.headerGradient, { shadowColor: colors.primary }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.headerContent}>
-              <Users size={28} color="#fef1e1" />
+              <Users size={28} color={colors.textLight} />
               <View>
-                <Text style={styles.headerTitle}>New Project</Text>
-                <Text style={styles.headerSubtitle}>Create a project in your workspace</Text>
+                <Text style={[styles.headerTitle, { color: colors.textLight }]}>New Project</Text>
+                <Text style={[styles.headerSubtitle, { color: colors.textLight }]}>Create a project in your workspace</Text>
               </View>
             </View>
           </LinearGradient>
         </View>
 
         <View style={styles.form}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Project Details</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Project Details</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Project Name *</Text>
-              <View style={styles.inputWrapper}>
+              <Text style={[styles.label, { color: colors.text }]}>Project Name *</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   placeholder="e.g., Mobile App Development"
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                   value={name}
                   onChangeText={setName}
                   maxLength={255}
@@ -156,12 +158,12 @@ export default function CreateProjectScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description</Text>
-              <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+              <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+              <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { color: colors.text }]}
                   placeholder="Describe your project goals and objectives..."
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -169,25 +171,25 @@ export default function CreateProjectScreen() {
                   maxLength={1000}
                 />
               </View>
-              <Text style={styles.hint}>Optional, but recommended</Text>
+              <Text style={[styles.hint, { color: colors.textSecondary }]}>Optional, but recommended</Text>
             </View>
           </View>
 
-          <View style={styles.section}>
+          <View style={[styles.section, { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Team Members</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Team Members</Text>
               <TouchableOpacity
                 onPress={() => setShowMemberModal(true)}
-                style={styles.addButton}
+                style={[styles.addButton, { shadowColor: colors.primary }]}
               >
                 <LinearGradient
-                  colors={['#fc350b', '#a0430a']}
+                  colors={[colors.primary, colors.secondary]}
                   style={styles.addButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <Plus size={16} color="#fef1e1" />
-                  <Text style={styles.addButtonText}>Add Members</Text>
+                  <Plus size={16} color={colors.textLight} />
+                  <Text style={[styles.addButtonText, { color: colors.textLight }]}>Add Members</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -197,72 +199,72 @@ export default function CreateProjectScreen() {
                 {workspaceMembers
                   .filter(member => selectedMembers.includes(member.userId))
                   .map(member => (
-                    <View key={member.userId} style={styles.selectedMemberCard}>
+                    <View key={member.userId} style={[styles.selectedMemberCard, { borderColor: colors.border }]}>
                       <LinearGradient
-                        colors={['#fef1e1', '#ffffff']}
+                        colors={[colors.cardLight, colors.cardDark]}
                         style={styles.selectedMemberGradient}
                       >
                         <View style={styles.memberInfo}>
-                          <View style={[styles.memberAvatar, { backgroundColor: '#fc350b15' }]}>
-                            <User size={16} color="#fc350b" />
+                          <View style={[styles.memberAvatar, { backgroundColor: colors.primary + '15' }]}>
+                            <User size={16} color={colors.primary} />
                           </View>
                           <View>
-                            <Text style={styles.selectedMemberName}>{member.name}</Text>
-                            <Text style={styles.selectedMemberRole}>{member.role}</Text>
+                            <Text style={[styles.selectedMemberName, { color: colors.text }]}>{member.name}</Text>
+                            <Text style={[styles.selectedMemberRole, { color: colors.primary }]}>{member.role}</Text>
                           </View>
                         </View>
                         <TouchableOpacity
                           onPress={() => toggleMemberSelection(member.userId)}
-                          style={styles.removeButton}
+                          style={[styles.removeButton, { backgroundColor: colors.cardDark, borderColor: colors.border }]}
                         >
-                          <X size={14} color="#a0430a" />
+                          <X size={14} color={colors.text} />
                         </TouchableOpacity>
                       </LinearGradient>
                     </View>
                   ))}
               </View>
             ) : (
-              <View style={styles.emptyMembers}>
-                <Shield size={32} color="#fc350b" opacity={0.3} />
-                <Text style={styles.emptyMembersText}>No members selected</Text>
-                <Text style={styles.emptyMembersSubtext}>
+              <View style={[styles.emptyMembers, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
+                <Shield size={32} color={colors.primary} opacity={0.3} />
+                <Text style={[styles.emptyMembersText, { color: colors.text }]}>No members selected</Text>
+                <Text style={[styles.emptyMembersSubtext, { color: colors.textSecondary }]}>
                   Add team members to collaborate on this project
                 </Text>
               </View>
             )}
 
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { color: colors.textSecondary }]}>
               Selected members will have access to all tasks in this project
             </Text>
           </View>
 
           <View style={styles.buttonGroup}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { backgroundColor: colors.cardDark, borderColor: colors.border }]}
               onPress={() => router.back()}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.createButton, loading && styles.createButtonDisabled]}
+              style={[styles.createButton, { shadowColor: colors.primary }, loading && styles.createButtonDisabled]}
               onPress={handleCreateProject}
               disabled={loading}
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={loading ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                colors={loading ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
                 style={styles.createButtonGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
                 {loading ? (
-                  <ActivityIndicator color="#ffffff" />
+                  <ActivityIndicator color={colors.textLight} />
                 ) : (
                   <>
-                    <Users size={18} color="#fef1e1" />
-                    <Text style={styles.createButtonText}>Create Project</Text>
+                    <Users size={18} color={colors.textLight} />
+                    <Text style={[styles.createButtonText, { color: colors.textLight }]}>Create Project</Text>
                   </>
                 )}
               </LinearGradient>
@@ -277,24 +279,24 @@ export default function CreateProjectScreen() {
         transparent={true}
         onRequestClose={() => setShowMemberModal(false)}
       >
-        <BlurView intensity={20} style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.modalBackground, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Team Members</Text>
               <TouchableOpacity
                 onPress={() => setShowMemberModal(false)}
-                style={styles.closeModalButton}
+                style={[styles.closeModalButton, { backgroundColor: colors.cardDark, borderColor: colors.border }]}
               >
-                <X size={24} color="#a0430a" />
+                <X size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.searchContainer}>
-              <Search size={20} color="#fc350b" />
+            <View style={[styles.searchContainer, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
+              <Search size={20} color={colors.primary} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Search members by name or email..."
-                placeholderTextColor="#a0430a60"
+                placeholderTextColor={colors.textSecondary + '60'}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -312,29 +314,29 @@ export default function CreateProjectScreen() {
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={selectedMembers.includes(item.userId) 
-                      ? ['#fc350b15', '#fef1e1'] 
-                      : ['#ffffff', '#fef1e1']}
-                    style={styles.memberItemGradient}
+                    colors={selectedMembers.includes(item.userId)
+                      ? [colors.primary + '15', colors.cardDark]
+                      : [colors.cardLight, colors.cardDark]}
+                    style={[styles.memberItemGradient, { borderColor: colors.border }]}
                   >
                     <View style={styles.memberItemContent}>
-                      <View style={[styles.memberAvatar, { backgroundColor: '#fc350b15' }]}>
-                        <User size={20} color="#fc350b" />
+                      <View style={[styles.memberAvatar, { backgroundColor: colors.primary + '15' }]}>
+                        <User size={20} color={colors.primary} />
                       </View>
                       <View style={styles.memberDetails}>
-                        <Text style={styles.memberName}>{item.name}</Text>
+                        <Text style={[styles.memberName, { color: colors.text }]}>{item.name}</Text>
                         <View style={styles.memberMeta}>
-                          <Mail size={12} color="#a0430a" />
-                          <Text style={styles.memberEmail}>{item.email}</Text>
+                          <Mail size={12} color={colors.textSecondary} />
+                          <Text style={[styles.memberEmail, { color: colors.textSecondary }]}>{item.email}</Text>
                         </View>
-                        <View style={styles.memberRoleBadge}>
-                          <Text style={styles.memberRoleText}>{item.role}</Text>
+                        <View style={[styles.memberRoleBadge, { backgroundColor: colors.primary + '15' }]}>
+                          <Text style={[styles.memberRoleText, { color: colors.primary }]}>{item.role}</Text>
                         </View>
                       </View>
                     </View>
                     {selectedMembers.includes(item.userId) && (
-                      <View style={styles.checkmark}>
-                        <Check size={20} color="#fc350b" />
+                      <View style={[styles.checkmark, { backgroundColor: colors.primary + '15' }]}>
+                        <Check size={20} color={colors.primary} />
                       </View>
                     )}
                   </LinearGradient>
@@ -342,9 +344,9 @@ export default function CreateProjectScreen() {
               )}
               ListEmptyComponent={
                 <View style={styles.emptySearch}>
-                  <Search size={40} color="#fc350b" opacity={0.3} />
-                  <Text style={styles.emptySearchText}>No members found</Text>
-                  <Text style={styles.emptySearchSubtext}>
+                  <Search size={40} color={colors.primary} opacity={0.3} />
+                  <Text style={[styles.emptySearchText, { color: colors.text }]}>No members found</Text>
+                  <Text style={[styles.emptySearchSubtext, { color: colors.textSecondary }]}>
                     Try adjusting your search
                   </Text>
                 </View>
@@ -352,18 +354,18 @@ export default function CreateProjectScreen() {
             />
 
             <View style={styles.modalFooter}>
-              <Text style={styles.selectedCount}>
+              <Text style={[styles.selectedCount, { color: colors.textSecondary }]}>
                 {selectedMembers.length} member{selectedMembers.length !== 1 ? 's' : ''} selected
               </Text>
               <TouchableOpacity
-                style={styles.doneButton}
+                style={[styles.doneButton, { shadowColor: colors.primary }]}
                 onPress={() => setShowMemberModal(false)}
               >
                 <LinearGradient
-                  colors={['#fc350b', '#a0430a']}
+                  colors={[colors.primary, colors.secondary]}
                   style={styles.doneButtonGradient}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
+                  <Text style={[styles.doneButtonText, { color: colors.textLight }]}>Done</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

@@ -191,6 +191,32 @@ const logout = async (req, res, next) => {
   }
 };
 
+const updatePushToken = async (req, res, next) => {
+  try {
+    const { pushToken } = req.body;
+    const user = req.user;
+
+    if (!pushToken) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'Push token is required',
+      });
+    }
+
+    user.push_token = pushToken;
+    await user.save();
+
+    logger.info(`Push token updated for user: ${user.email}`);
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Push token updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getUserStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -258,6 +284,7 @@ module.exports = {
   refreshTokenController,
   getMe,
   updateProfile,
+  updatePushToken,
   logout,
   getUserStats,
 };

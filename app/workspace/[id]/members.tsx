@@ -3,24 +3,26 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { memberApi, WorkspaceMember } from '@/utils/api/members';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  UserPlus, 
-  X, 
-  Trash2, 
-  Shield, 
-  Mail, 
-  User, 
-  Crown, 
-  Award, 
-  Star, 
-  ChevronRight, 
+import {
+  UserPlus,
+  X,
+  Trash2,
+  Shield,
+  Mail,
+  User,
+  Crown,
+  Award,
+  Star,
+  ChevronRight,
   Search,
   MoreVertical
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function WorkspaceMembersScreen() {
+  const { colors, theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,19 +39,19 @@ export default function WorkspaceMembersScreen() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'OWNER': return '#fc350b';
-      case 'ADMIN': return '#a0430a';
-      case 'MEMBER': return '#f89b7a';
-      default: return '#dfe8e6';
+      case 'OWNER': return colors.primary;
+      case 'ADMIN': return colors.secondary;
+      case 'MEMBER': return colors.tertiary;
+      default: return colors.border;
     }
   };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'OWNER': return <Crown size={16} color="#fc350b" />;
-      case 'ADMIN': return <Award size={16} color="#a0430a" />;
-      case 'MEMBER': return <Star size={16} color="#f89b7a" />;
-      default: return <User size={16} color="#dfe8e6" />;
+      case 'OWNER': return <Crown size={16} color={colors.primary} />;
+      case 'ADMIN': return <Award size={16} color={colors.secondary} />;
+      case 'MEMBER': return <Star size={16} color={colors.tertiary} />;
+      default: return <User size={16} color={colors.border} />;
     }
   };
 
@@ -126,7 +128,7 @@ export default function WorkspaceMembersScreen() {
     ]);
   };
 
-  const filteredMembers = members.filter(member => 
+  const filteredMembers = members.filter(member =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -144,8 +146,8 @@ export default function WorkspaceMembersScreen() {
       }}
     >
       <LinearGradient
-        colors={['#ffffff', '#fef1e1']}
-        style={styles.card}
+        colors={[colors.cardLight, colors.cardDark]}
+        style={[styles.card, { borderColor: colors.border }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -156,20 +158,20 @@ export default function WorkspaceMembersScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+            <Text style={[styles.avatarText, { color: colors.textLight }]}>{item.name.charAt(0).toUpperCase()}</Text>
           </LinearGradient>
-          
+
           <View style={styles.memberDetails}>
             <View style={styles.nameContainer}>
-              <Text style={styles.memberName}>{item.name}</Text>
+              <Text style={[styles.memberName, { color: colors.text }]}>{item.name}</Text>
               {item.userId === user?.id && (
-                <View style={[styles.youBadge, { backgroundColor: '#fc350b15' }]}>
-                  <Text style={[styles.youText, { color: '#fc350b' }]}>You</Text>
+                <View style={[styles.youBadge, { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={[styles.youText, { color: colors.primary }]}>You</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.memberEmail}>{item.email}</Text>
-            
+            <Text style={[styles.memberEmail, { color: colors.textSecondary }]}>{item.email}</Text>
+
             <View style={[styles.roleBadge, { backgroundColor: getRoleColor(item.role || 'MEMBER') + '15' }]}>
               {getRoleIcon(item.role || 'MEMBER')}
               <Text style={[styles.roleText, { color: getRoleColor(item.role || 'MEMBER') }]}>
@@ -183,29 +185,29 @@ export default function WorkspaceMembersScreen() {
           (userRole === 'OWNER') ||
           (userRole === 'ADMIN' && item.role === 'MEMBER')
         ) && (
-          <TouchableOpacity 
-            onPress={() => handleRemoveMember(item)} 
-            style={[styles.removeButton, { backgroundColor: '#fc350b15' }]}
-          >
-            <Trash2 size={18} color="#fc350b" />
-          </TouchableOpacity>
-        )}
+            <TouchableOpacity
+              onPress={() => handleRemoveMember(item)}
+              style={[styles.removeButton, { backgroundColor: colors.primary + '15' }]}
+            >
+              <Trash2 size={18} color={colors.primary} />
+            </TouchableOpacity>
+          )}
       </LinearGradient>
     </Animated.View>
   );
 
   if (loading) {
     return (
-      <LinearGradient colors={['#fef1e1', '#ffffff']} style={styles.centered}>
-        <ActivityIndicator size="large" color="#fc350b" />
+      <LinearGradient colors={[colors.cardDark, colors.cardLight]} style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </LinearGradient>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={StyleSheet.absoluteFill}
         locations={[0, 0.5, 1]}
       />
@@ -214,12 +216,12 @@ export default function WorkspaceMembersScreen() {
         options={{
           title: 'Workspace Members',
           headerBackTitle: 'Back',
-          headerTintColor: '#fc350b',
+          headerTintColor: colors.primary,
           headerStyle: {
-            backgroundColor: '#fef1e1',
+            backgroundColor: colors.background,
           },
           headerTitleStyle: {
-            color: '#a0430a',
+            color: colors.text,
             fontWeight: '600',
           },
         }}
@@ -228,16 +230,16 @@ export default function WorkspaceMembersScreen() {
       {/* Search Bar */}
       <Animated.View style={[styles.searchContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <LinearGradient
-          colors={['#ffffff', '#fef1e1']}
-          style={styles.searchBar}
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.searchBar, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Search size={18} color="#fc350b" />
+          <Search size={18} color={colors.primary} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search members..."
-            placeholderTextColor="#a0430a60"
+            placeholderTextColor={colors.textSecondary + '60'}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -253,26 +255,26 @@ export default function WorkspaceMembersScreen() {
         ListHeaderComponent={
           <Animated.View style={[styles.statsHeader, { opacity: fadeAnim }]}>
             <LinearGradient
-              colors={['#fc350b15', '#a0430a15']}
-              style={styles.statsBadge}
+              colors={[colors.primary + '15', colors.secondary + '15']}
+              style={[styles.statsBadge, { borderColor: colors.border }]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <User size={16} color="#fc350b" />
-              <Text style={styles.statsText}>{members.length} Members</Text>
+              <User size={16} color={colors.primary} />
+              <Text style={[styles.statsText, { color: colors.textSecondary }]}>{members.length} Members</Text>
             </LinearGradient>
           </Animated.View>
         }
         ListEmptyComponent={
           <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
             <LinearGradient
-              colors={['#ffffff', '#fef1e1']}
-              style={styles.emptyIllustration}
+              colors={[colors.cardLight, colors.cardDark]}
+              style={[styles.emptyIllustration, { borderColor: colors.border }]}
             >
-              <UserPlus size={48} color="#fc350b" />
+              <UserPlus size={48} color={colors.primary} />
             </LinearGradient>
-            <Text style={styles.emptyTitle}>No members found</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No members found</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Try adjusting your search or invite new members
             </Text>
           </Animated.View>
@@ -295,16 +297,16 @@ export default function WorkspaceMembersScreen() {
           ]}
         >
           <TouchableOpacity
-            style={styles.fab}
+            style={[styles.fab, { shadowColor: colors.primary }]}
             onPress={() => setModalVisible(true)}
           >
             <LinearGradient
-              colors={['#fc350b', '#a0430a']}
+              colors={[colors.primary, colors.secondary]}
               style={styles.fabGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <UserPlus color="#fef1e1" size={24} />
+              <UserPlus color={colors.textLight} size={24} />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -317,11 +319,13 @@ export default function WorkspaceMembersScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <BlurView intensity={20} style={styles.modalOverlay}>
+        <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
           <Animated.View
             style={[
               styles.modalContent,
               {
+                backgroundColor: colors.modalBackground,
+                shadowColor: colors.shadow,
                 transform: [{
                   scale: fadeAnim.interpolate({
                     inputRange: [0, 1],
@@ -338,48 +342,48 @@ export default function WorkspaceMembersScreen() {
               end={{ x: 1, y: 1 }}
             >
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add Member</Text>
-                <TouchableOpacity 
-                  style={[styles.closeButton, { backgroundColor: '#fc350b15' }]}
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Add Member</Text>
+                <TouchableOpacity
+                  style={[styles.closeButton, { backgroundColor: colors.primary + '15' }]}
                   onPress={() => setModalVisible(false)}
                 >
-                  <X size={20} color="#fc350b" />
+                  <X size={20} color={colors.primary} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Mail size={18} color="#fc350b" style={styles.inputIcon} />
+              <View style={[styles.inputContainer, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
+                <Mail size={18} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   value={inviteEmail}
                   onChangeText={setInviteEmail}
                   placeholder="Enter User ID"
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                   autoCapitalize="none"
                 />
               </View>
-              
-              <Text style={styles.hint}>
+
+              <Text style={[styles.hint, { color: colors.primary }]}>
                 In production, this would be an email lookup.
               </Text>
 
               <TouchableOpacity
-                style={styles.createButton}
+                style={[styles.createButton, { shadowColor: colors.primary }]}
                 onPress={handleInvite}
                 disabled={inviting}
               >
                 <LinearGradient
-                  colors={inviting ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                  colors={inviting ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
                   style={styles.createButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   {inviting ? (
-                    <ActivityIndicator color="#ffffff" />
+                    <ActivityIndicator color={colors.textLight} />
                   ) : (
                     <>
-                      <UserPlus size={18} color="#fef1e1" />
-                      <Text style={styles.createButtonText}>Add Member</Text>
+                      <UserPlus size={18} color={colors.textLight} />
+                      <Text style={[styles.createButtonText, { color: colors.textLight }]}>Add Member</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -413,13 +417,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#fc350b30',
     gap: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     padding: 0,
   },
@@ -440,7 +442,6 @@ const styles = StyleSheet.create({
   },
   statsText: {
     fontSize: 13,
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
   },
   list: {
@@ -455,12 +456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#fc350b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
   },
   memberInfo: {
     flexDirection: 'row',
@@ -474,16 +469,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
-    shadowColor: '#fc350b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   avatarText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fef1e1',
     fontFamily: 'Inter_700Bold',
   },
   memberDetails: {
@@ -498,7 +487,6 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
   },
   youBadge: {
@@ -513,7 +501,6 @@ const styles = StyleSheet.create({
   },
   memberEmail: {
     fontSize: 12,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     marginBottom: 6,
     opacity: 0.8,
@@ -578,13 +565,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     opacity: 0.8,
@@ -600,16 +585,10 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: 28,
     overflow: 'hidden',
-    shadowColor: '#a0430a',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 16,
   },
   modalGradient: {
     padding: 24,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -620,7 +599,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
   },
   closeButton: {
@@ -633,10 +611,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef1e1',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#fc350b30',
     paddingHorizontal: 14,
     marginBottom: 12,
   },
@@ -647,12 +623,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
   },
   hint: {
     fontSize: 12,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     marginBottom: 20,
     opacity: 0.7,

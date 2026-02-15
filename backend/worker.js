@@ -1,17 +1,54 @@
-const { TaskJob, Notification } = require('./src/models');
+const { TaskJob, Notification, User } = require('./src/models');
 const logger = require('./src/utils/logger');
 const { Op } = require('sequelize');
+const { Expo } = require('expo-server-sdk');
+
+// Initialize Expo SDK with access token if available
+const expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
 async function processNotification(job) {
     const { user_id, task_id, type, message, data } = job.data;
-    await Notification.create({
+
+    // Create the in-app notification record
+    const notification = await Notification.create({
         user_id,
         task_id,
         type,
         message,
         data,
     });
-    logger.info(`[Worker] Notification processed for user: ${user_id}`);
+
+    logger.info(`[Worker] In-app notification created for user: ${user_id}`);
+
+    // Try to send push notification
+    try {
+        const user = await User.findByPk(user_id);
+
+        if (user && user.push_token && Expo.isExpoPushToken(user.push_token)) {
+            const pushMessages = [{
+                to: user.push_token,
+                sound: 'default',
+                title: 'Taskflow Update',
+                body: message,
+                data: { ...data, notificationId: notification.id },
+            }];
+
+            const chunks = expo.chunkPushNotifications(pushMessages);
+            for (let chunk of chunks) {
+                try {
+                    const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+                    logger.info(`[Worker] Push notification sent to user: ${user_id}`);
+                    // NOTE: In a production app, you might want to store and check receipt IDs later
+                } catch (error) {
+                    logger.error(`[Worker] Error sending push notification chunk: ${error.message}`);
+                }
+            }
+        } else {
+            logger.info(`[Worker] User ${user_id} has no valid push token, skipping push alert.`);
+        }
+    } catch (error) {
+        logger.error(`[Worker] Failed push notification process: ${error.message}`);
+    }
 }
 
 async function processActivityLog(job) {

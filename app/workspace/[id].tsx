@@ -3,26 +3,28 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { workspaceApi, Workspace } from '@/utils/api/workspaces';
 import { projectApi, Project } from '@/utils/api/projects';
-import { 
-  Plus, 
-  X, 
-  Folder, 
-  Users, 
-  Calendar, 
-  ArrowRight, 
-  TrendingUp, 
-  Grid, 
-  List, 
-  Filter, 
-  MoreHorizontal, 
-  Eye, 
+import {
+  Plus,
+  X,
+  Folder,
+  Users,
+  Calendar,
+  ArrowRight,
+  TrendingUp,
+  Grid,
+  List,
+  Filter,
+  MoreHorizontal,
+  Eye,
   Clock,
-  ChevronRight 
+  ChevronRight
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function WorkspaceDetailsScreen() {
+  const { colors, theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -102,12 +104,12 @@ export default function WorkspaceDetailsScreen() {
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'OWNER': return '#fc350b';
-      case 'ADMIN': return '#a0430a';
-      case 'MEMBER': return '#f89b7a';
-      default: return '#dfe8e6';
+  const getRoleColor = (role: string | undefined) => {
+    switch (role || 'MEMBER') {
+      case 'OWNER': return colors.primary;
+      case 'ADMIN': return colors.secondary;
+      case 'MEMBER': return colors.tertiary;
+      default: return colors.border;
     }
   };
 
@@ -132,42 +134,42 @@ export default function WorkspaceDetailsScreen() {
         activeOpacity={0.9}
       >
         <LinearGradient
-          colors={['#ffffff', '#fef1e1']}
-          style={styles.gridCardGradient}
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.gridCardGradient, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.gridHeader}>
-            <View style={[styles.projectIcon, { backgroundColor: '#fc350b15' }]}>
-              <Folder size={24} color="#fc350b" />
+            <View style={[styles.projectIcon, { backgroundColor: colors.primary + '15' }]}>
+              <Folder size={24} color={colors.primary} />
             </View>
-            <View style={[styles.taskCount, { backgroundColor: '#10B98115' }]}>
-              <Text style={[styles.taskCountText, { color: '#10B981' }]}>12</Text>
+            <View style={[styles.taskCount, { backgroundColor: colors.success + '15' }]}>
+              <Text style={[styles.taskCountText, { color: colors.success }]}>12</Text>
             </View>
           </View>
 
-          <Text style={styles.gridTitle} numberOfLines={2}>{item.name}</Text>
+          <Text style={[styles.gridTitle, { color: colors.text }]} numberOfLines={2}>{item.name}</Text>
 
           {item.description ? (
-            <Text style={styles.gridDesc} numberOfLines={2}>
+            <Text style={[styles.gridDesc, { color: colors.textSecondary }]} numberOfLines={2}>
               {item.description}
             </Text>
           ) : (
-            <Text style={styles.gridDescPlaceholder}>No description</Text>
+            <Text style={[styles.gridDescPlaceholder, { color: colors.textSecondary + '60' }]}>No description</Text>
           )}
 
           <View style={styles.gridFooter}>
             <View style={styles.dateContainer}>
-              <Calendar size={12} color="#a0430a" />
-              <Text style={styles.dateText}>
+              <Calendar size={12} color={colors.textSecondary} />
+              <Text style={[styles.dateText, { color: colors.textSecondary }]}>
                 {new Date(item.created_at).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric'
                 })}
               </Text>
             </View>
-            <View style={[styles.arrowContainer, { backgroundColor: '#fc350b15' }]}>
-              <Eye size={14} color="#fc350b" />
+            <View style={[styles.arrowContainer, { backgroundColor: colors.primary + '15' }]}>
+              <Eye size={14} color={colors.primary} />
             </View>
           </View>
         </LinearGradient>
@@ -193,36 +195,36 @@ export default function WorkspaceDetailsScreen() {
         activeOpacity={0.9}
       >
         <LinearGradient
-          colors={['#ffffff', '#fef1e1']}
-          style={styles.listCardGradient}
+          colors={[colors.cardLight, colors.cardDark]}
+          style={[styles.listCardGradient, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.listContent}>
-            <View style={[styles.listIcon, { backgroundColor: '#fc350b15' }]}>
-              <Folder size={20} color="#fc350b" />
+            <View style={[styles.listIcon, { backgroundColor: colors.primary + '15' }]}>
+              <Folder size={20} color={colors.primary} />
             </View>
             <View style={styles.listDetails}>
-              <Text style={styles.listTitle}>{item.name}</Text>
-              <Text style={styles.listDesc} numberOfLines={1}>
+              <Text style={[styles.listTitle, { color: colors.text }]}>{item.name}</Text>
+              <Text style={[styles.listDesc, { color: colors.textSecondary }]} numberOfLines={1}>
                 {item.description || 'No description'}
               </Text>
               <View style={styles.listMeta}>
-                <Calendar size={12} color="#a0430a" />
-                <Text style={styles.listDate}>
+                <Calendar size={12} color={colors.textSecondary} />
+                <Text style={[styles.listDate, { color: colors.textSecondary }]}>
                   {new Date(item.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric'
                   })}
                 </Text>
                 <View style={styles.listTasks}>
-                  <Clock size={12} color="#10B981" />
-                  <Text style={styles.listTasksText}>12 tasks</Text>
+                  <Clock size={12} color={colors.success} />
+                  <Text style={[styles.listTasksText, { color: colors.success }]}>12 tasks</Text>
                 </View>
               </View>
             </View>
           </View>
-          <ChevronRight size={18} color="#fc350b" />
+          <ChevronRight size={18} color={colors.primary} />
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -230,24 +232,24 @@ export default function WorkspaceDetailsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#fef1e1', '#ffffff']} style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fc350b" />
+      <LinearGradient colors={[colors.cardDark, colors.cardLight]} style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </LinearGradient>
     );
   }
 
   if (!workspace) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Workspace not found</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>Workspace not found</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={StyleSheet.absoluteFill}
         locations={[0, 0.5, 1]}
       />
@@ -256,12 +258,12 @@ export default function WorkspaceDetailsScreen() {
         options={{
           title: workspace.name,
           headerBackTitle: 'Back',
-          headerTintColor: '#fc350b',
+          headerTintColor: colors.primary,
           headerStyle: {
-            backgroundColor: '#fef1e1',
+            backgroundColor: colors.background,
           },
           headerTitleStyle: {
-            color: '#a0430a',
+            color: colors.text,
             fontWeight: '600',
           },
         }}
@@ -278,8 +280,8 @@ export default function WorkspaceDetailsScreen() {
         ListHeaderComponent={
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <LinearGradient
-              colors={['#ffffff', '#fef1e1']}
-              style={styles.headerGradient}
+              colors={[colors.cardLight, colors.cardDark]}
+              style={[styles.headerGradient, { borderColor: colors.border, shadowColor: colors.shadow }]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
@@ -289,42 +291,42 @@ export default function WorkspaceDetailsScreen() {
                     {workspace.role}
                   </Text>
                 </View>
-                
+
                 <View style={styles.headerActions}>
                   <TouchableOpacity
-                    style={[styles.viewToggle, { backgroundColor: '#fc350b15' }]}
+                    style={[styles.viewToggle, { backgroundColor: colors.primary + '15' }]}
                     onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
                   >
-                    {viewMode === 'grid' ? 
-                      <List size={16} color="#fc350b" /> : 
-                      <Grid size={16} color="#fc350b" />
+                    {viewMode === 'grid' ?
+                      <List size={16} color={colors.primary} /> :
+                      <Grid size={16} color={colors.primary} />
                     }
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
-                    style={[styles.membersButton, { backgroundColor: '#fc350b15' }]}
+                    style={[styles.membersButton, { backgroundColor: colors.primary + '15' }]}
                     onPress={() => router.push(`/workspace/${id}/members`)}
                   >
-                    <Users size={16} color="#fc350b" />
-                    <Text style={styles.membersButtonText}>Members</Text>
+                    <Users size={16} color={colors.primary} />
+                    <Text style={[styles.membersButtonText, { color: colors.primary }]}>Members</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.stats}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{projects.length}</Text>
-                  <Text style={styles.statLabel}>Projects</Text>
+                  <Text style={[styles.statValue, { color: colors.text }]}>{projects.length}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Projects</Text>
                 </View>
-                <View style={[styles.statDivider, { backgroundColor: '#fc350b30' }]} />
+                <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.statItem}>
-                  <TrendingUp size={20} color="#fc350b" />
-                  <Text style={styles.statLabel}>Active</Text>
+                  <TrendingUp size={20} color={colors.primary} />
+                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Active</Text>
                 </View>
-                <View style={[styles.statDivider, { backgroundColor: '#fc350b30' }]} />
+                <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.statItem}>
-                  <Users size={20} color="#a0430a" />
-                  <Text style={styles.statLabel}>8 members</Text>
+                  <Users size={20} color={colors.secondary} />
+                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>8 members</Text>
                 </View>
               </View>
             </LinearGradient>
@@ -338,27 +340,27 @@ export default function WorkspaceDetailsScreen() {
             ]}
           >
             <LinearGradient
-              colors={['#ffffff', '#fef1e1']}
-              style={styles.emptyIllustration}
+              colors={[colors.cardLight, colors.cardDark]}
+              style={[styles.emptyIllustration, { borderColor: colors.border }]}
             >
-              <Folder size={48} color="#fc350b" />
+              <Folder size={48} color={colors.primary} />
             </LinearGradient>
-            <Text style={styles.emptyTitle}>No projects yet</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No projects yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Create your first project to start organizing tasks
             </Text>
-            <TouchableOpacity 
-              style={styles.emptyButton}
+            <TouchableOpacity
+              style={[styles.emptyButton, { shadowColor: colors.primary }]}
               onPress={() => setModalVisible(true)}
             >
               <LinearGradient
-                colors={['#fc350b', '#a0430a']}
+                colors={[colors.primary, colors.secondary]}
                 style={styles.emptyButtonGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Plus size={18} color="#fef1e1" />
-                <Text style={styles.emptyButtonText}>Create Project</Text>
+                <Plus size={18} color={colors.textLight} />
+                <Text style={[styles.emptyButtonText, { color: colors.textLight }]}>Create Project</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
@@ -380,17 +382,17 @@ export default function WorkspaceDetailsScreen() {
         ]}
       >
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { shadowColor: colors.primary }]}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#fc350b', '#a0430a']}
+            colors={[colors.primary, colors.secondary]}
             style={styles.fabGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Plus color="#fef1e1" size={24} />
+            <Plus color={colors.textLight} size={24} />
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -402,11 +404,13 @@ export default function WorkspaceDetailsScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <BlurView intensity={20} style={styles.modalOverlay}>
+        <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
           <Animated.View
             style={[
               styles.modalContent,
               {
+                backgroundColor: colors.modalBackground,
+                shadowColor: colors.shadow,
                 transform: [{
                   scale: fadeAnim.interpolate({
                     inputRange: [0, 1],
@@ -423,54 +427,54 @@ export default function WorkspaceDetailsScreen() {
               end={{ x: 1, y: 1 }}
             >
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>New Project</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>New Project</Text>
                 <TouchableOpacity
-                  style={[styles.closeButton, { backgroundColor: '#fc350b15' }]}
+                  style={[styles.closeButton, { backgroundColor: colors.primary + '15' }]}
                   onPress={() => setModalVisible(false)}
                 >
-                  <X size={20} color="#fc350b" />
+                  <X size={20} color={colors.primary} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Folder size={18} color="#fc350b" style={styles.inputIcon} />
+              <View style={[styles.inputContainer, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
+                <Folder size={18} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   value={newProjectName}
                   onChangeText={setNewProjectName}
                   placeholder="Project name"
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                   autoFocus
                 />
               </View>
 
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { color: colors.text }]}
                   value={newProjectDesc}
                   onChangeText={setNewProjectDesc}
                   placeholder="Description (optional)"
-                  placeholderTextColor="#a0430a60"
+                  placeholderTextColor={colors.textSecondary + '60'}
                   multiline
                   numberOfLines={3}
                 />
               </View>
 
               <TouchableOpacity
-                style={styles.createButton}
+                style={[styles.createButton, { shadowColor: colors.primary }]}
                 onPress={handleCreateProject}
                 disabled={creating}
               >
                 <LinearGradient
-                  colors={creating ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                  colors={creating ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
                   style={styles.createButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   {creating ? (
-                    <ActivityIndicator color="#ffffff" />
+                    <ActivityIndicator color={colors.textLight} />
                   ) : (
-                    <Text style={styles.createButtonText}>Create Project</Text>
+                    <Text style={[styles.createButtonText, { color: colors.textLight }]}>Create Project</Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
@@ -498,7 +502,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   header: {
@@ -510,12 +513,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#fc350b',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
   },
   roleContainer: {
     flexDirection: 'row',
@@ -571,12 +568,10 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
   },
   statLabel: {
     fontSize: 12,
-    color: '#fc350b',
     fontFamily: 'Inter_500Medium',
   },
   statDivider: {
@@ -600,7 +595,6 @@ const styles = StyleSheet.create({
   gridCardGradient: {
     padding: 16,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   gridHeader: {
     flexDirection: 'row',
@@ -628,14 +622,12 @@ const styles = StyleSheet.create({
   gridTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 6,
     lineHeight: 20,
   },
   gridDesc: {
     fontSize: 12,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     lineHeight: 16,
     marginBottom: 12,
@@ -660,7 +652,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 11,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
   },
   arrowContainer: {
@@ -682,7 +673,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   listContent: {
     flexDirection: 'row',
@@ -703,13 +693,11 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 2,
   },
   listDesc: {
     fontSize: 12,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     marginBottom: 4,
     opacity: 0.8,
@@ -721,7 +709,6 @@ const styles = StyleSheet.create({
   },
   listDate: {
     fontSize: 11,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     marginLeft: 2,
   },
@@ -747,18 +734,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     borderWidth: 2,
-    borderColor: '#fc350b30',
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     marginBottom: 24,
@@ -820,16 +804,10 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: 28,
     overflow: 'hidden',
-    shadowColor: '#a0430a',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 16,
   },
   modalGradient: {
     padding: 24,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -840,7 +818,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
   },
   closeButton: {
@@ -853,10 +830,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef1e1',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#fc350b30',
     paddingHorizontal: 14,
     marginBottom: 16,
   },
@@ -867,7 +842,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
   },
   textArea: {

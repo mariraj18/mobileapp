@@ -5,7 +5,7 @@ export interface Notification {
     user_id: string;
     type: 'DUE_DATE' | 'PRIORITY' | 'ASSIGNMENT' | 'COMMENT' | 'PROJECT_INVITE' | 'TASK_ASSIGNMENT' | 'PROJECT_COMPLETED';
     message: string;
-    read: boolean;
+    is_read: boolean;
     data?: any;
     created_at: string;
 }

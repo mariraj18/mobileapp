@@ -7,7 +7,10 @@ import { Plus, X, Calendar, CheckCircle, Clock, AlertCircle, Target, TrendingUp,
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 
+import { useTheme } from '@/contexts/ThemeContext';
+
 export default function ProjectDetailsScreen() {
+    const { colors, theme } = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
 
@@ -100,19 +103,19 @@ export default function ProjectDetailsScreen() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'DONE': return '#10B981';
-            case 'IN_PROGRESS': return '#3B82F6';
-            case 'TODO': return '#fc350b';
-            default: return '#dfe8e6';
+            case 'DONE': return colors.success;
+            case 'IN_PROGRESS': return colors.secondary;
+            case 'TODO': return colors.primary;
+            default: return colors.border;
         }
     };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'HIGH': return '#fc350b';
-            case 'MEDIUM': return '#a0430a';
-            case 'LOW': return '#f89b7a';
-            default: return '#dfe8e6';
+            case 'HIGH': return colors.primary;
+            case 'MEDIUM': return colors.secondary;
+            case 'LOW': return colors.tertiary;
+            default: return colors.border;
         }
     };
 
@@ -143,13 +146,13 @@ export default function ProjectDetailsScreen() {
                 activeOpacity={0.7}
             >
                 <LinearGradient
-                    colors={['#ffffff', '#fef1e1']}
-                    style={styles.cardGradient}
+                    colors={[colors.cardLight, colors.cardDark]}
+                    style={[styles.cardGradient, { borderColor: colors.border }]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                 >
                     <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(item.priority) }]} />
-                    
+
                     <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
                             <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
@@ -177,7 +180,7 @@ export default function ProjectDetailsScreen() {
                                     {item.status.replace('_', ' ')}
                                 </Text>
                             </View>
-                            
+
                             {item.due_date && (
                                 <View style={styles.metaItem}>
                                     <Calendar size={12} color="#a0430a" />
@@ -204,12 +207,12 @@ export default function ProjectDetailsScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <LinearGradient
-                    colors={['#fef1e1', '#ffffff']}
+                    colors={[colors.cardDark, colors.background]}
                     style={StyleSheet.absoluteFill}
                 />
-                <ActivityIndicator size="large" color="#fc350b" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -228,9 +231,9 @@ export default function ProjectDetailsScreen() {
     const filteredTasks = getFilteredTasks();
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <LinearGradient
-                colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+                colors={[colors.cardDark, colors.background, colors.darkBg]}
                 style={StyleSheet.absoluteFill}
                 locations={[0, 0.5, 1]}
             />
@@ -239,7 +242,7 @@ export default function ProjectDetailsScreen() {
                 options={{
                     title: project.name,
                     headerBackTitle: 'Back',
-                    headerTintColor: '#fc350b',
+                    headerTintColor: colors.primary,
                     headerStyle: {
                         backgroundColor: 'transparent',
                     },
@@ -257,21 +260,21 @@ export default function ProjectDetailsScreen() {
                 ]}
             >
                 <LinearGradient
-                    colors={['#ffffff', '#fef1e1']}
-                    style={styles.headerGradient}
+                    colors={[colors.cardLight, colors.cardDark]}
+                    style={[styles.headerGradient, { borderColor: colors.border, shadowColor: colors.shadow }]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                 >
                     <View style={styles.headerTop}>
                         <Text style={styles.projectName}>{project.name}</Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.filterButton}
                             onPress={() => setFilterModalVisible(true)}
                         >
                             <Filter size={18} color="#fc350b" />
                         </TouchableOpacity>
                     </View>
-                    
+
                     {project.description && (
                         <Text style={styles.projectDescription}>{project.description}</Text>
                     )}
@@ -294,8 +297,8 @@ export default function ProjectDetailsScreen() {
                         </View>
                     </View>
 
-                    <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: `${(doneCount / (tasks.length || 1)) * 100}%` }]} />
+                    <View style={[styles.progressBar, { backgroundColor: colors.cardDark }]}>
+                        <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${(doneCount / (tasks.length || 1)) * 100}%` }]} />
                     </View>
                 </LinearGradient>
             </Animated.View>
@@ -322,13 +325,13 @@ export default function ProjectDetailsScreen() {
                         ]}
                     >
                         <LinearGradient
-                            colors={['#ffffff', '#fef1e1']}
-                            style={styles.emptyIllustration}
+                            colors={[colors.cardLight, colors.cardDark]}
+                            style={[styles.emptyIllustration, { borderColor: colors.border }]}
                         >
-                            <Target size={48} color="#fc350b" />
+                            <Target size={48} color={colors.primary} />
                         </LinearGradient>
-                        <Text style={styles.emptyTitle}>No tasks yet</Text>
-                        <Text style={styles.emptySubtitle}>
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>No tasks yet</Text>
+                        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                             Create your first task to get started
                         </Text>
                     </Animated.View>
@@ -349,15 +352,15 @@ export default function ProjectDetailsScreen() {
                 ]}
             >
                 <TouchableOpacity
-                    style={styles.fab}
+                    style={[styles.fab, { shadowColor: colors.primary }]}
                     onPress={() => setModalVisible(true)}
                     activeOpacity={0.8}
                 >
                     <LinearGradient
-                        colors={['#fc350b', '#a0430a']}
+                        colors={[colors.primary, colors.secondary]}
                         style={styles.fabGradient}
                     >
-                        <Plus color="#fef1e1" size={24} />
+                        <Plus color={colors.textLight} size={24} />
                     </LinearGradient>
                 </TouchableOpacity>
             </Animated.View>
@@ -369,11 +372,13 @@ export default function ProjectDetailsScreen() {
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}
             >
-                <BlurView intensity={20} style={styles.modalOverlay}>
+                <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
                     <Animated.View
                         style={[
                             styles.modalContent,
                             {
+                                backgroundColor: colors.modalBackground,
+                                shadowColor: colors.shadow,
                                 transform: [{
                                     scale: scaleAnim
                                 }]
@@ -394,11 +399,11 @@ export default function ProjectDetailsScreen() {
                             <Text style={styles.label}>Title</Text>
                             <View style={styles.inputWrapper}>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { color: colors.text }]}
                                     value={newTaskTitle}
                                     onChangeText={setNewTaskTitle}
                                     placeholder="What needs to be done?"
-                                    placeholderTextColor="#a0430a60"
+                                    placeholderTextColor={colors.textSecondary + '60'}
                                     autoFocus
                                 />
                             </View>
@@ -408,11 +413,11 @@ export default function ProjectDetailsScreen() {
                             <Text style={styles.label}>Description</Text>
                             <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                                 <TextInput
-                                    style={[styles.input, styles.textArea]}
+                                    style={[styles.input, styles.textArea, { color: colors.text }]}
                                     value={newTaskDesc}
                                     onChangeText={setNewTaskDesc}
                                     placeholder="Add details..."
-                                    placeholderTextColor="#a0430a60"
+                                    placeholderTextColor={colors.textSecondary + '60'}
                                     multiline
                                     numberOfLines={3}
                                 />
@@ -436,7 +441,8 @@ export default function ProjectDetailsScreen() {
                                     >
                                         <Text style={[
                                             styles.priorityOptionText,
-                                            newTaskPriority === p && { color: '#fef1e1' }
+                                            { color: colors.text },
+                                            newTaskPriority === p && { color: colors.textLight }
                                         ]}>
                                             {p}
                                         </Text>
@@ -446,18 +452,18 @@ export default function ProjectDetailsScreen() {
                         </View>
 
                         <TouchableOpacity
-                            style={styles.createButton}
+                            style={[styles.createButton, { shadowColor: colors.primary }]}
                             onPress={handleCreateTask}
                             disabled={creating}
                         >
                             <LinearGradient
-                                colors={creating ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                                colors={creating ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
                                 style={styles.createButtonGradient}
                             >
                                 {creating ? (
-                                    <ActivityIndicator color="#ffffff" />
+                                    <ActivityIndicator color={colors.textLight} />
                                 ) : (
-                                    <Text style={styles.createButtonText}>Create Task</Text>
+                                    <Text style={[styles.createButtonText, { color: colors.textLight }]}>Create Task</Text>
                                 )}
                             </LinearGradient>
                         </TouchableOpacity>
@@ -472,12 +478,14 @@ export default function ProjectDetailsScreen() {
                 visible={filterModalVisible}
                 onRequestClose={() => setFilterModalVisible(false)}
             >
-                <BlurView intensity={20} style={styles.modalOverlay}>
+                <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
                     <Animated.View
                         style={[
                             styles.modalContent,
                             styles.filterModal,
                             {
+                                backgroundColor: colors.modalBackground,
+                                shadowColor: colors.shadow,
                                 transform: [{
                                     scale: scaleAnim
                                 }]
@@ -499,7 +507,8 @@ export default function ProjectDetailsScreen() {
                                 key={filter}
                                 style={[
                                     styles.filterOption,
-                                    selectedFilter === filter && styles.filterOptionSelected
+                                    { borderColor: colors.border },
+                                    selectedFilter === filter && { backgroundColor: colors.badgeBackground, borderColor: colors.primary }
                                 ]}
                                 onPress={() => {
                                     setSelectedFilter(filter);
@@ -508,15 +517,16 @@ export default function ProjectDetailsScreen() {
                             >
                                 <Text style={[
                                     styles.filterOptionText,
-                                    selectedFilter === filter && styles.filterOptionTextSelected
+                                    { color: colors.text },
+                                    selectedFilter === filter && { color: colors.primary, fontWeight: '700' }
                                 ]}>
                                     {filter === 'ALL' ? 'All Tasks' : filter.replace('_', ' ')}
                                 </Text>
-                                <Text style={styles.filterCount}>
+                                <Text style={[styles.filterCount, { color: colors.textSecondary }]}>
                                     {filter === 'ALL' ? tasks.length : getStatusCount(filter)}
                                 </Text>
                                 {selectedFilter === filter && (
-                                    <ChevronRight size={18} color="#fc350b" />
+                                    <ChevronRight size={18} color={colors.primary} />
                                 )}
                             </TouchableOpacity>
                         ))}

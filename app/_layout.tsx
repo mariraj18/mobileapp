@@ -7,12 +7,16 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { StyleSheet, View, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNotifications } from '@/hooks/useNotifications';
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
   const { colors, theme } = useTheme();
   const segments = useSegments();
   const router = useRouter();
+
+  // Register for push notifications
+  useNotifications();
 
   useEffect(() => {
     if (loading) return;
@@ -64,8 +68,8 @@ function RootLayoutNav() {
       <Stack
         screenOptions={{
           headerStyle: styles.header,
-          headerTitleStyle: [styles.headerTitle, { color: colors.text }],
-          headerBackTitleStyle: [styles.headerBackTitle, { color: colors.primary }],
+          headerTitleStyle: styles.headerTitle,
+          headerBackTitleStyle: styles.headerBackTitle,
           headerTintColor: colors.primary,
           headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.background },
@@ -79,78 +83,78 @@ function RootLayoutNav() {
           ),
         }}
       >
-        <Stack.Screen 
-          name="(auth)" 
-          options={{ 
+        <Stack.Screen
+          name="(auth)"
+          options={{
             headerShown: false,
             animation: 'fade',
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
+        <Stack.Screen
+          name="(tabs)"
+          options={{
             headerShown: false,
             animation: 'slide_from_right',
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="+not-found" 
+        <Stack.Screen
+          name="+not-found"
           options={{
             title: '404 - Page Not Found',
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}
         />
-        <Stack.Screen 
-          name="task/[id]" 
+        <Stack.Screen
+          name="task/[id]"
           options={{
             title: 'Task Details',
             presentation: 'card',
             animation: 'slide_from_right',
           }}
         />
-        <Stack.Screen 
-          name="project/[id]" 
+        <Stack.Screen
+          name="project/[id]"
           options={{
             title: 'Project Details',
             presentation: 'card',
             animation: 'slide_from_right',
           }}
         />
-        <Stack.Screen 
-          name="workspace/[id]" 
+        <Stack.Screen
+          name="workspace/[id]"
           options={{
             title: 'Workspace',
             presentation: 'card',
             animation: 'slide_from_right',
           }}
         />
-        <Stack.Screen 
-          name="workspace/[id]/members" 
+        <Stack.Screen
+          name="workspace/[id]/members"
           options={{
             title: 'Workspace Members',
             presentation: 'card',
             animation: 'slide_from_right',
           }}
         />
-        <Stack.Screen 
-          name="project/create" 
+        <Stack.Screen
+          name="project/create"
           options={{
             title: 'Create Project',
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}
         />
-        <Stack.Screen 
-          name="task/create" 
+        <Stack.Screen
+          name="task/create"
           options={{
             title: 'Create Task',
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}
         />
-        <Stack.Screen 
-          name="profile/edit" 
+        <Stack.Screen
+          name="profile/edit"
           options={{
             title: 'Edit Profile',
             presentation: 'card',

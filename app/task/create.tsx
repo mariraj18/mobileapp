@@ -14,11 +14,12 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { taskApi, CreateTaskData } from '@/utils/api/tasks';
-import { 
-  ArrowLeft, 
-  CheckSquare, 
-  Flag, 
-  Calendar, 
+import { useTheme } from '@/contexts/ThemeContext';
+import {
+  ArrowLeft,
+  CheckSquare,
+  Flag,
+  Calendar,
   FileText,
   Tag,
   AlertCircle,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react-native';
 
 export default function CreateTaskScreen() {
+  const { colors, theme } = useTheme();
   const router = useRouter();
   const { projectId } = useLocalSearchParams();
   const { user } = useAuth();
@@ -99,27 +101,27 @@ export default function CreateTaskScreen() {
 
   const getPriorityColor = (p: string) => {
     switch (p) {
-      case 'HIGH': return '#fc350b';
-      case 'URGENT': return '#a0430a';
-      case 'MEDIUM': return '#f89b7a';
-      case 'LOW': return '#10B981';
-      default: return '#dfe8e6';
+      case 'HIGH': return colors.primary;
+      case 'URGENT': return colors.secondary;
+      case 'MEDIUM': return colors.tertiary;
+      case 'LOW': return colors.success;
+      default: return colors.border;
     }
   };
 
   const getStatusColor = (s: string) => {
     switch (s) {
-      case 'TODO': return '#a0430a';
-      case 'IN_PROGRESS': return '#fc350b';
-      case 'DONE': return '#10B981';
-      default: return '#dfe8e6';
+      case 'TODO': return colors.secondary;
+      case 'IN_PROGRESS': return colors.primary;
+      case 'DONE': return colors.success;
+      default: return colors.border;
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#fef1e1', '#ffffff', '#dfe8e6']}
+        colors={[colors.cardDark, colors.background, colors.darkBg]}
         style={StyleSheet.absoluteFill}
         locations={[0, 0.5, 1]}
       />
@@ -128,12 +130,12 @@ export default function CreateTaskScreen() {
         options={{
           title: 'Create New Task',
           headerBackTitle: 'Cancel',
-          headerTintColor: '#fc350b',
+          headerTintColor: colors.primary,
           headerStyle: {
-            backgroundColor: '#fef1e1',
+            backgroundColor: colors.background,
           },
           headerTitleStyle: {
-            color: '#a0430a',
+            color: colors.text,
             fontWeight: '600',
           },
         }}
@@ -152,20 +154,20 @@ export default function CreateTaskScreen() {
         <View style={styles.form}>
           {/* Title Input */}
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.inputCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.inputCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.inputIconContainer}>
-              <CheckSquare size={20} color="#fc350b" />
+            <View style={[styles.inputIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <CheckSquare size={20} color={colors.primary} />
             </View>
             <View style={styles.inputContent}>
-              <Text style={styles.inputLabel}>Task Title <Text style={styles.required}>*</Text></Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Task Title <Text style={[styles.required, { color: colors.primary }]}>*</Text></Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="e.g., Design new homepage"
-                placeholderTextColor="#a0430a60"
+                placeholderTextColor={colors.textSecondary + '60'}
                 value={title}
                 onChangeText={setTitle}
                 maxLength={255}
@@ -175,20 +177,20 @@ export default function CreateTaskScreen() {
 
           {/* Description Input */}
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.inputCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.inputCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.inputIconContainer}>
-              <FileText size={20} color="#fc350b" />
+            <View style={[styles.inputIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <FileText size={20} color={colors.primary} />
             </View>
             <View style={styles.inputContent}>
-              <Text style={styles.inputLabel}>Description</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Description</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, styles.textArea, { color: colors.text }]}
                 placeholder="Add more details about this task..."
-                placeholderTextColor="#a0430a60"
+                placeholderTextColor={colors.textSecondary + '60'}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -200,16 +202,16 @@ export default function CreateTaskScreen() {
 
           {/* Priority Selection */}
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.inputCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.inputCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.inputIconContainer}>
-              <Flag size={20} color="#fc350b" />
+            <View style={[styles.inputIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <Flag size={20} color={colors.primary} />
             </View>
             <View style={styles.inputContent}>
-              <Text style={styles.inputLabel}>Priority</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Priority</Text>
               <View style={styles.optionsContainer}>
                 {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
                   <TouchableOpacity
@@ -231,7 +233,7 @@ export default function CreateTaskScreen() {
                         style={[
                           styles.optionText,
                           priority === p && styles.optionTextActive,
-                          { color: priority === p ? '#ffffff' : getPriorityColor(p) }
+                          { color: priority === p ? colors.textLight : getPriorityColor(p) }
                         ]}
                       >
                         {p}
@@ -245,16 +247,16 @@ export default function CreateTaskScreen() {
 
           {/* Status Selection */}
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.inputCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.inputCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.inputIconContainer}>
-              <Tag size={20} color="#fc350b" />
+            <View style={[styles.inputIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <Tag size={20} color={colors.primary} />
             </View>
             <View style={styles.inputContent}>
-              <Text style={styles.inputLabel}>Status</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Status</Text>
               <View style={styles.optionsContainer}>
                 {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map((s) => (
                   <TouchableOpacity
@@ -276,7 +278,7 @@ export default function CreateTaskScreen() {
                         style={[
                           styles.optionText,
                           status === s && styles.optionTextActive,
-                          { color: status === s ? '#ffffff' : getStatusColor(s) }
+                          { color: status === s ? colors.textLight : getStatusColor(s) }
                         ]}
                       >
                         {s === 'IN_PROGRESS' ? 'DOING' : s}
@@ -290,20 +292,20 @@ export default function CreateTaskScreen() {
 
           {/* Due Date */}
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
-            style={styles.inputCard}
+            colors={[colors.cardLight, colors.cardDark]}
+            style={[styles.inputCard, { borderColor: colors.border, shadowColor: colors.shadow }]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.inputIconContainer}>
-              <Calendar size={20} color="#fc350b" />
+            <View style={[styles.inputIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <Calendar size={20} color={colors.primary} />
             </View>
             <View style={styles.inputContent}>
-              <Text style={styles.inputLabel}>Due Date</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Due Date</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="YYYY-MM-DD (optional)"
-                placeholderTextColor="#a0430a60"
+                placeholderTextColor={colors.textSecondary + '60'}
                 value={dueDate}
                 onChangeText={setDueDate}
               />
@@ -312,22 +314,22 @@ export default function CreateTaskScreen() {
 
           {/* Create Button */}
           <TouchableOpacity
-            style={[styles.createButton, loading && styles.createButtonDisabled]}
+            style={[styles.createButton, { shadowColor: colors.primary }, loading && styles.createButtonDisabled]}
             onPress={handleCreateTask}
             disabled={loading}
           >
             <LinearGradient
-              colors={loading ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+              colors={loading ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
               style={styles.createButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
               {loading ? (
-                <ActivityIndicator color="#ffffff" />
+                <ActivityIndicator color={colors.textLight} />
               ) : (
                 <>
-                  <Check size={20} color="#ffffff" />
-                  <Text style={styles.createButtonText}>Create Task</Text>
+                  <Check size={20} color={colors.textLight} />
+                  <Text style={[styles.createButtonText, { color: colors.textLight }]}>Create Task</Text>
                 </>
               )}
             </LinearGradient>
@@ -355,18 +357,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#fc350b20',
-    shadowColor: '#fc350b',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   inputIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#fc350b15',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -376,16 +371,14 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 13,
-    color: '#a0430a',
     fontFamily: 'Inter_600SemiBold',
     marginBottom: 6,
   },
   required: {
-    color: '#fc350b',
+    fontWeight: '700',
   },
   input: {
     fontSize: 15,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     paddingVertical: 8,
   },
@@ -405,6 +398,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
+  optionButtonActive: {
+    borderWidth: 0,
+  },
   optionGradient: {
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -422,11 +418,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#fc350b',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   createButtonDisabled: {
     opacity: 0.7,

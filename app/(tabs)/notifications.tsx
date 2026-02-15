@@ -14,7 +14,7 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -54,7 +54,7 @@ export default function NotificationsScreen() {
     const response = await notificationApi.markAsRead(id);
     if (response.success) {
       setNotifications(prev => prev.map(n =>
-        n.id === id ? { ...n, read: true } : n
+        n.id === id ? { ...n, is_read: true } : n
       ));
     }
   };
@@ -62,7 +62,7 @@ export default function NotificationsScreen() {
   const handleMarkAllRead = async () => {
     const response = await notificationApi.markAllAsRead();
     if (response.success) {
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     }
   };
 
@@ -90,13 +90,13 @@ export default function NotificationsScreen() {
     return colors_map[type as keyof typeof colors_map] || colors.badgeBackground;
   };
 
-  const filteredNotifications = filter === 'all' 
-    ? notifications 
-    : filter === 'unread' 
-      ? notifications.filter(n => !n.read)
+  const filteredNotifications = filter === 'all'
+    ? notifications
+    : filter === 'unread'
+      ? notifications.filter(n => !n.is_read)
       : notifications.filter(n => n.type === filter);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const renderNotification = ({ item, index }: { item: Notification; index: number }) => (
     <Animated.View
@@ -114,12 +114,12 @@ export default function NotificationsScreen() {
       ]}
     >
       <TouchableOpacity
-        style={[styles.card, !item.read && styles.unreadCard]}
-        onPress={() => !item.read && handleMarkAsRead(item.id)}
+        style={[styles.card, !item.is_read && styles.unreadCard]}
+        onPress={() => !item.is_read && handleMarkAsRead(item.id)}
         activeOpacity={0.7}
       >
         <LinearGradient
-          colors={!item.read ? [colors.cardLight, colors.cardDark] : [colors.cardLight, colors.cardLight]}
+          colors={!item.is_read ? [colors.cardLight, colors.cardDark] : [colors.cardLight, colors.cardLight]}
           style={[styles.cardGradient, { borderColor: colors.border }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -128,12 +128,12 @@ export default function NotificationsScreen() {
             <View style={[styles.iconContainer, { backgroundColor: getNotificationColor(item.type) }]}>
               {getNotificationIcon(item.type)}
             </View>
-            
+
             <View style={styles.textContainer}>
-              <Text style={[styles.message, !item.read && styles.unreadText, { color: colors.textSecondary }]}>
+              <Text style={[styles.message, !item.is_read && styles.unreadText, { color: colors.textSecondary }]}>
                 {item.message}
               </Text>
-              
+
               <View style={styles.metaContainer}>
                 <Clock size={12} color={colors.secondary} />
                 <Text style={[styles.timeText, { color: colors.textSecondary }]}>
@@ -144,8 +144,8 @@ export default function NotificationsScreen() {
                     day: 'numeric'
                   })}
                 </Text>
-                
-                {!item.read && (
+
+                {!item.is_read && (
                   <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
                 )}
               </View>
@@ -159,14 +159,14 @@ export default function NotificationsScreen() {
   const FilterChip = ({ label, value }: { label: string; value: string }) => (
     <TouchableOpacity
       style={[
-        styles.filterChip, 
+        styles.filterChip,
         { backgroundColor: colors.cardLight, borderColor: colors.border, shadowColor: colors.shadow },
         filter === value && { backgroundColor: colors.primary, borderColor: colors.primary }
       ]}
       onPress={() => setFilter(value)}
     >
       <Text style={[
-        styles.filterChipText, 
+        styles.filterChipText,
         { color: colors.textSecondary },
         filter === value && { color: colors.textLight }
       ]}>
@@ -224,8 +224,8 @@ export default function NotificationsScreen() {
 
         {/* Filter Section */}
         <Animated.View style={[styles.filterSection, { opacity: fadeAnim }]}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterContainer}
           >
@@ -244,8 +244,8 @@ export default function NotificationsScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
+            <RefreshControl
+              refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={colors.primary}
               colors={[colors.primary]}

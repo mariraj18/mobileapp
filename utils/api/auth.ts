@@ -67,6 +67,10 @@ export const authApi = {
     return response;
   },
 
+  async updatePushToken(pushToken: string): Promise<ApiResponse<void> | ApiError> {
+    return apiClient.put<void>('/push-token', { pushToken }, true);
+  },
+
   async getCurrentUser(): Promise<User | null> {
     try {
       const userStr = await AsyncStorage.getItem('user');
