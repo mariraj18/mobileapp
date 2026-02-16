@@ -1,5 +1,5 @@
-const { TaskComment, User, Task, Project, WorkspaceMember, Notification, ProjectMember } = require('../models');
-const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES } = require('../../config/constants');
+const { TaskComment, User, Task, Project, WorkspaceMember, Notification, ProjectMember, Workspace } = require('../models');
+const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES, ROLES } = require('../../config/constants');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const { sequelize } = require('../models');
@@ -17,6 +17,10 @@ const createComment = async (req, res, next) => {
       include: [{
         model: Project,
         as: 'project',
+        include: [{
+          model: Workspace,
+          as: 'workspace',
+        }]
       }],
       transaction,
     });
@@ -116,6 +120,26 @@ const createComment = async (req, res, next) => {
           debugLogs.push(`Added project member: ${idStr}`);
         }
       });
+
+      // Add Workspace Owners (as requested: owner can see all project chats)
+      if (task.project && task.project.workspace_id) {
+        debugLogs.push(`Fetching workspace owners for workspace: ${task.project.workspace_id}`);
+        const workspaceOwners = await WorkspaceMember.findAll({
+          where: {
+            workspace_id: task.project.workspace_id,
+            role: ROLES.OWNER
+          },
+          transaction
+        });
+        debugLogs.push(`Found ${workspaceOwners.length} workspace owners`);
+        workspaceOwners.forEach(owner => {
+          const idStr = String(owner.user_id);
+          if (idStr !== commenterIdStr) {
+            usersToNotify.add(idStr);
+            debugLogs.push(`Added workspace owner: ${idStr}`);
+          }
+        });
+      }
     }
 
     // Add parent comment user if replying
