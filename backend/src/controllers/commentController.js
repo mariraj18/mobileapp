@@ -76,7 +76,7 @@ const createComment = async (req, res, next) => {
       transaction,
     });
 
-    // Notify task creator and assigned users (except the commenter)
+    // Notify task creator, assigned users, and project members (except the commenter)
     const usersToNotify = new Set();
 
     // Add task creator
@@ -91,6 +91,19 @@ const createComment = async (req, res, next) => {
         usersToNotify.add(user.id);
       }
     });
+
+    // Add all project members if it's a project task
+    if (task.project_id) {
+      const projectMembers = await ProjectMember.findAll({
+        where: { project_id: task.project_id },
+        transaction
+      });
+      projectMembers.forEach(member => {
+        if (member.user_id !== userId) {
+          usersToNotify.add(member.user_id);
+        }
+      });
+    }
 
     // Add parent comment user if replying
     if (parentComment && parentComment.user_id !== userId) {

@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { authApi } from '@/utils/api/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 Notifications.setNotificationHandler({
@@ -22,7 +23,11 @@ export function useNotifications() {
     const notificationListener = useRef<Notifications.Subscription>(undefined);
     const responseListener = useRef<Notifications.Subscription>(undefined);
 
+    const { user } = useAuth();
+
     useEffect(() => {
+        if (!user) return; // Only register if user is logged in
+
         registerForPushNotificationsAsync().then(token => {
             if (token) {
                 setExpoPushToken(token);
@@ -30,11 +35,11 @@ export function useNotifications() {
             }
         });
 
-        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+        notificationListener.current = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
             setNotification(notification);
         });
 
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        responseListener.current = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
             console.log('Notification response received:', response);
         });
 
@@ -46,17 +51,22 @@ export function useNotifications() {
                 responseListener.current.remove();
             }
         };
-    }, []);
+    }, [user?.id]);
 
     const saveTokenToServer = async (token: string) => {
         try {
-            const storedToken = await AsyncStorage.getItem('last_push_token');
-            if (storedToken === token) return; // Already saved
+            const userStr = await AsyncStorage.getItem('user');
+            if (!userStr) return;
+            const user = JSON.parse(userStr);
+            const userTokenKey = `push_token_${user.id}`;
+
+            const storedToken = await AsyncStorage.getItem(userTokenKey);
+            if (storedToken === token) return; // Already saved for this user
 
             const response = await authApi.updatePushToken(token);
             if (response.success) {
-                await AsyncStorage.setItem('last_push_token', token);
-                console.log('Push token saved to server successfully');
+                await AsyncStorage.setItem(userTokenKey, token);
+                console.log(`Push token saved to server for user ${user.email}`);
             }
         } catch (error) {
             console.error('Error saving push token to server:', error);
