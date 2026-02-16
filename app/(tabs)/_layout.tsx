@@ -3,21 +3,24 @@ import { Home, ListTodo, Bell, Settings } from 'lucide-react-native';
 import { StyleSheet, Animated, Pressable, View, Text } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function TabLayout() {
+  const { colors, theme } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#fc350b',
-        tabBarInactiveTintColor: '#a0430a',
-        tabBarLabelStyle: styles.tabLabel,
+        tabBarStyle: [styles.tabBar, { borderTopColor: colors.border, shadowColor: colors.shadow }],
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.secondary,
+        tabBarLabelStyle: [styles.tabLabel, { color: colors.secondary }],
         tabBarItemStyle: styles.tabItem,
         tabBarButton: CustomTabBarButton,
         tabBarBackground: () => (
           <LinearGradient
-            colors={['#ffffff', '#fef1e1']}
+            colors={theme === 'light' ? ['#ffffff', '#fef1e1'] : [colors.cardLight, colors.background]}
             style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -32,12 +35,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
-                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
-                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                colors={focused ? [colors.gradientStart, colors.gradientEnd] : [colors.border, colors.border]}
+                style={[styles.iconGradient, focused && styles.activeIconGradient, { shadowColor: colors.primary }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Home color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+                <Home color={focused ? colors.background : colors.secondary} size={size} />
               </LinearGradient>
             </Animated.View>
           ),
@@ -50,12 +53,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
-                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
-                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                colors={focused ? [colors.gradientStart, colors.gradientEnd] : [colors.border, colors.border]}
+                style={[styles.iconGradient, focused && styles.activeIconGradient, { shadowColor: colors.primary }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <ListTodo color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+                <ListTodo color={focused ? colors.background : colors.secondary} size={size} />
               </LinearGradient>
             </Animated.View>
           ),
@@ -68,12 +71,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
-                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
-                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                colors={focused ? [colors.gradientStart, colors.gradientEnd] : [colors.border, colors.border]}
+                style={[styles.iconGradient, focused && styles.activeIconGradient, { shadowColor: colors.primary }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Bell color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+                <Bell color={focused ? colors.background : colors.secondary} size={size} />
               </LinearGradient>
             </Animated.View>
           ),
@@ -86,12 +89,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Animated.View style={focused ? styles.activeIconWrapper : null}>
               <LinearGradient
-                colors={focused ? ['#fc350b', '#a0430a'] : ['#dfe8e6', '#dfe8e6']}
-                style={[styles.iconGradient, focused && styles.activeIconGradient]}
+                colors={focused ? [colors.gradientStart, colors.gradientEnd] : [colors.border, colors.border]}
+                style={[styles.iconGradient, focused && styles.activeIconGradient, { shadowColor: colors.primary }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Settings color={focused ? '#fef1e1' : '#a0430a'} size={size} />
+                <Settings color={focused ? colors.background : colors.secondary} size={size} />
               </LinearGradient>
             </Animated.View>
           ),
@@ -153,32 +156,33 @@ const CustomTabBarButton = (props: any) => {
         }
       ]}>
         {children}
-        {focused && <View style={styles.activeDot} />}
+        {focused && <TabBarDot />}
       </Animated.View>
     </Pressable>
   );
 };
 
+const TabBarDot = () => {
+  const { colors } = useTheme();
+  return <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />;
+};
+
 const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 1,
-    borderTopColor: '#fc350b20',
     height: 70,
     paddingBottom: 8,
     paddingTop: 8,
     elevation: 8,
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     backgroundColor: 'transparent',
-    // Remove this line: position: 'absolute',
   },
   tabLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 11,
     marginTop: 4,
-    color: '#a0430a',
   },
   tabItem: {
     paddingVertical: 4,
@@ -214,7 +218,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#fc350b',
     marginTop: 4,
   },
 });
