@@ -535,25 +535,56 @@ const addProjectMember = async (req, res, next) => {
       });
     }
 
-    // Check if current user is workspace owner/admin
+    // Check if current user is workspace owner/admin OR project creator
     const workspaceMembership = await WorkspaceMember.findOne({
       where: {
         user_id: currentUserId,
         workspace_id: project.workspace_id,
-        role: [ROLES.OWNER, ROLES.ADMIN],
       },
       transaction,
     });
 
-    if (!workspaceMembership) {
+    // Check if user is project creator
+    const isProjectCreator = project.created_by === currentUserId;
+
+    if (!workspaceMembership && !isProjectCreator) {
       await transaction.rollback();
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        message: 'Only workspace owners/admins can add members to projects',
+        message: 'You must be a workspace member to add members to projects',
       });
     }
 
-    // Check if user is already a member
+    // Check if current user has appropriate role (owner/admin) OR is project creator
+    const hasPermission = isProjectCreator || 
+                         (workspaceMembership && [ROLES.OWNER, ROLES.ADMIN].includes(workspaceMembership.role));
+
+    if (!hasPermission) {
+      await transaction.rollback();
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        message: 'Only workspace owners/admins or project creators can add members to projects',
+      });
+    }
+
+    // IMPORTANT: Check if the user being added is a workspace member first
+    const userWorkspaceMembership = await WorkspaceMember.findOne({
+      where: {
+        user_id: userId,
+        workspace_id: project.workspace_id,
+      },
+      transaction,
+    });
+
+    if (!userWorkspaceMembership) {
+      await transaction.rollback();
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'User must be a workspace member before adding to project',
+      });
+    }
+
+    // Check if user is already a project member
     const existingMember = await ProjectMember.findOne({
       where: { project_id: id, user_id: userId },
       transaction,
@@ -599,6 +630,11 @@ const addProjectMember = async (req, res, next) => {
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: 'Member added successfully',
+      data: {
+        project_id: id,
+        user_id: userId,
+        added_by: currentUserId,
+      },
     });
   } catch (error) {
     await transaction.rollback();
@@ -686,6 +722,7 @@ const getProjectMembers = async (req, res, next) => {
     next(error);
   }
 };
+
 
 module.exports = {
   createProject,

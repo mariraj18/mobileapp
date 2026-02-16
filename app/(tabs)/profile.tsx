@@ -179,8 +179,8 @@ export default function ProfileScreen() {
               >
                 <View style={[styles.profileImageContainer, { backgroundColor: colors.cardDark }]}>
                   {user?.profile_image && !imageError ? (
-                    <Image 
-                      source={{ uri: user.profile_image }} 
+                    <Image
+                      source={{ uri: user.profile_image }}
                       style={styles.profileImage}
                       key={user.profile_image}
                       onError={handleImageError}
@@ -435,22 +435,22 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </LinearGradient>
 
-            <ScrollView 
+            <ScrollView
               style={styles.privacyScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.privacyContent}
             >
               <Text style={[styles.privacySectionTitle, { color: colors.text }]}>Taskflow – Privacy Policy</Text>
               <Text style={[styles.privacyEffectiveDate, { color: colors.textSecondary }]}>Effective Date: [Add Date]</Text>
-              
+
               <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
-                Welcome to Taskflow, a task management application designed to help users organize work efficiently. 
-                Your privacy and data protection are important to us. This policy explains how we collect, use, store, 
+                Welcome to Taskflow, a task management application designed to help users organize work efficiently.
+                Your privacy and data protection are important to us. This policy explains how we collect, use, store,
                 and protect your information when you use Taskflow.
               </Text>
 
               <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>1. Information We Collect</Text>
-              
+
               <Text style={[styles.privacySubSubtitle, { color: colors.primary }]}>a) Personal Information</Text>
               <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Name and profile details</Text>
               <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Email address or login credentials</Text>
@@ -514,7 +514,7 @@ export default function ProfileScreen() {
 
               <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>7. Changes to Policy</Text>
               <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
-                We may update this policy when features or legal requirements change. Users will be notified through 
+                We may update this policy when features or legal requirements change. Users will be notified through
                 the app or email when significant updates occur.
               </Text>
 

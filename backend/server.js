@@ -27,7 +27,7 @@ class WebSocketServer {
   constructor(server) {
     this.wss = new WebSocket.Server({ server });
     this.clients = new Map(); // userId -> WebSocket[]
-    
+
     this.wss.on('connection', this.handleConnection.bind(this));
     logger.info('WebSocket server initialized');
   }
@@ -138,17 +138,17 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc)
     if (!origin) return callback(null, true);
-    
+
     // Get allowed origins from environment variable or use defaults
-    const allowedOrigins = process.env.CORS_ORIGIN 
-      ? process.env.CORS_ORIGIN.split(',') 
+    const allowedOrigins = process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
       : ['http://localhost:8081', 'http://localhost:19006', 'http://localhost:3000'];
-    
+
     // Always allow your Render domain
     if (origin.includes('mobileapp-ocya.onrender.com')) {
       return callback(null, true);
     }
-    
+
     // Check if origin is allowed
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
       callback(null, true);
@@ -263,12 +263,12 @@ const startServer = async () => {
 // Graceful shutdown
 const gracefulShutdown = () => {
   logger.info('Received shutdown signal, closing connections...');
-  
+
   // Close all WebSocket connections
   websocketServer.wss.close(() => {
     logger.info('WebSocket server closed');
   });
-  
+
   // Close HTTP server
   server.close(() => {
     logger.info('HTTP server closed');

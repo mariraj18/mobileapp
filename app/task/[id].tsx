@@ -172,35 +172,43 @@ export default function TaskDetailsScreen() {
     }
   };
 
-  const handleDeleteTask = async () => {
-    Alert.alert('DEBUG', 'handleDeleteTask entered');
-    Alert.alert(
-      'Delete Task',
-      'Are you sure you want to delete this task? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            Alert.alert('DEBUG', 'Starting API call to delete task');
-            console.log(`[TaskDetails] Deleting task ${id}`);
-            const response = await taskApi.delete(id!);
-            console.log(`[TaskDetails] Delete response:`, response);
-            Alert.alert('DEBUG', `API Result: success=${response.success}`);
-            if (response.success) {
-              if (task?.project_id) {
-                router.replace(`/project/${task.project_id}`);
-              } else {
-                router.replace('/(tabs)');
-              }
-            } else {
-              Alert.alert('Error', response.message || 'Failed to delete task');
-            }
-          },
-        },
-      ]
-    );
+  const performDeleteTask = async () => {
+    try {
+      console.log(`[TaskDetails] Deleting task ${id}`);
+      const response = await taskApi.delete(id!);
+      console.log(`[TaskDetails] Delete response:`, JSON.stringify(response, null, 2));
+
+      if (response.success) {
+        if (task?.project_id) {
+          router.replace(`/project/${task.project_id}`);
+        } else {
+          router.replace('/(tabs)');
+        }
+      } else {
+        Alert.alert('Error', response.message || 'Failed to delete task');
+      }
+    } catch (error) {
+      console.error('[TaskDetails] Delete error:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    }
+  };
+
+  const handleDeleteTask = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = confirm('Are you sure you want to delete this task? This action cannot be undone.');
+      if (confirmed) {
+        performDeleteTask();
+      }
+    } else {
+      Alert.alert(
+        'Delete Task',
+        'Are you sure you want to delete this task? This action cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: performDeleteTask },
+        ]
+      );
+    }
   };
 
   const handleSaveDetails = async () => {

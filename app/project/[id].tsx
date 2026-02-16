@@ -102,27 +102,43 @@ export default function ProjectDetailsScreen() {
         }
     };
 
-    const handleDeleteProject = async () => {
-        Alert.alert('DEBUG', 'handleDeleteProject entered');
-        Alert.alert('Delete Project', 'Are you sure you want to delete this project? This action cannot be undone.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    Alert.alert('DEBUG', 'Starting API call to delete project');
-                    const response = await projectApi.delete(id!);
-                    Alert.alert('DEBUG', `API Result: success=${response.success}`);
-                    if (response.success && project) {
-                        router.replace(`/workspace/${project.workspace_id}`);
-                    } else if (response.success) {
-                        router.replace('/(tabs)');
-                    } else {
-                        Alert.alert('Error', response.message || 'Failed to delete project');
-                    }
-                }
+    const performDeleteProject = async () => {
+        try {
+            console.log(`[ProjectDetails] Deleting project ${id}`);
+            const response = await projectApi.delete(id!);
+            console.log(`[ProjectDetails] Delete response:`, JSON.stringify(response, null, 2));
+
+            if (response.success && project) {
+                router.replace(`/workspace/${project.workspace_id}`);
+            } else if (response.success) {
+                router.replace('/(tabs)');
+            } else {
+                Alert.alert('Error', response.message || 'Failed to delete project');
             }
-        ]);
+        } catch (error) {
+            console.error('[ProjectDetails] Delete error:', error);
+            Alert.alert('Error', 'An unexpected error occurred');
+        }
+    };
+
+    const handleDeleteProject = () => {
+        console.log('[ProjectDetails] handleDeleteProject called');
+
+        if (Platform.OS === 'web') {
+            const confirmed = confirm('Are you sure you want to delete this project? This action cannot be undone.');
+            if (confirmed) {
+                performDeleteProject();
+            }
+        } else {
+            Alert.alert(
+                'Delete Project',
+                'Are you sure you want to delete this project? This action cannot be undone.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: performDeleteProject },
+                ]
+            );
+        }
     };
 
     const handleRemoveMember = async (userId: string) => {

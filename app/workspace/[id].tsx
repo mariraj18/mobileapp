@@ -120,31 +120,41 @@ export default function WorkspaceDetailsScreen() {
     }
   };
 
-  const handleDeleteWorkspace = async () => {
-    Alert.alert('DEBUG', 'handleDeleteWorkspace entered');
-    Alert.alert(
-      'Delete Workspace',
-      'Are you sure you want to delete this workspace? This will delete all projects and tasks within it. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            Alert.alert('DEBUG', 'Starting API call to delete workspace');
-            console.log(`[WorkspaceDetails] Deleting workspace ${id}`);
-            const response = await workspaceApi.delete(id!);
-            console.log(`[WorkspaceDetails] Delete response:`, response);
-            Alert.alert('DEBUG', `API Result: success=${response.success}`);
-            if (response.success) {
-              router.replace('/(tabs)');
-            } else {
-              Alert.alert('Error', response.message || 'Failed to delete workspace');
-            }
-          },
-        },
-      ]
-    );
+  const performDeleteWorkspace = async () => {
+    try {
+      console.log(`[WorkspaceDetails] Deleting workspace ${id}`);
+      const response = await workspaceApi.delete(id!);
+      console.log(`[WorkspaceDetails] Delete response:`, JSON.stringify(response, null, 2));
+
+      if (response.success) {
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to delete workspace');
+      }
+    } catch (error) {
+      console.error('[WorkspaceDetails] Delete error:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    }
+  };
+
+  const handleDeleteWorkspace = () => {
+    console.log('[WorkspaceDetails] handleDeleteWorkspace called');
+
+    if (Platform.OS === 'web') {
+      const confirmed = confirm('Are you sure you want to delete this workspace? This will delete all projects and tasks within it. This action cannot be undone.');
+      if (confirmed) {
+        performDeleteWorkspace();
+      }
+    } else {
+      Alert.alert(
+        'Delete Workspace',
+        'Are you sure you want to delete this workspace? This will delete all projects and tasks within it. This action cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: performDeleteWorkspace },
+        ]
+      );
+    }
   };
 
   const getRoleColor = (role: string | undefined) => {
