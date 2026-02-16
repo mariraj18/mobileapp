@@ -61,10 +61,15 @@ export function useNotifications() {
             const storedToken = await AsyncStorage.getItem(userTokenKey);
             if (storedToken === token) return; // Already saved for this user
 
+            console.log('Attempting to save push token to server:', token);
             const response = await authApi.updatePushToken(token);
+            console.log('Save push token response:', response);
+
             if (response.success) {
                 await AsyncStorage.setItem(userTokenKey, token);
                 console.log(`Push token saved to server for user ${user.email}`);
+            } else {
+                console.error('Failed to save push token to server:', response);
             }
         } catch (error) {
             console.error('Error saving push token to server:', error);

@@ -34,7 +34,7 @@ const register = async (req, res, next) => {
 
     logger.info(`User registered: ${user.email}`);
 
-    // Send welcome notification with a slight delay to allow push token registration
+    // Send welcome notification with a 10-second delay to allow push token registration
     setTimeout(() => {
       sendNotification({
         user_id: user.id,
@@ -42,7 +42,7 @@ const register = async (req, res, next) => {
         message: `Welcome to Taskflow, ${user.name}! We're glad to have you here.`,
         data: { type: 'WELCOME' }
       });
-    }, 3000);
+    }, 10000);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -83,7 +83,7 @@ const login = async (req, res, next) => {
 
     logger.info(`User logged in: ${user.email}`);
 
-    // Send welcome notification on login with delay
+    // Send welcome notification on login with 10-second delay
     setTimeout(() => {
       sendNotification({
         user_id: user.id,
@@ -91,7 +91,7 @@ const login = async (req, res, next) => {
         message: `Welcome back, ${user.name}!`,
         data: { type: 'WELCOME_BACK' }
       });
-    }, 3000);
+    }, 10000);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -225,10 +225,14 @@ const updatePushToken = async (req, res, next) => {
       });
     }
 
+    logger.info(`Received push token update request for user: ${user.email}`);
+    logger.info(`Token payload: ${pushToken}`);
+    logger.info(`Current DB token: ${user.push_token}`);
+
     user.push_token = pushToken;
     await user.save();
 
-    logger.info(`Push token updated for user: ${user.email}`);
+    logger.info(`Push token successfully updated for user: ${user.email} (New token: ${user.push_token})`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
