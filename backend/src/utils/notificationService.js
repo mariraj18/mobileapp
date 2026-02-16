@@ -46,12 +46,26 @@ const sendNotification = async ({ user_id, task_id, project_id, type, message, d
             }];
 
             const chunks = expo.chunkPushNotifications(pushMessages);
+            const tickets = [];
             for (let chunk of chunks) {
                 try {
-                    await expo.sendPushNotificationsAsync(chunk);
+                    const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+                    tickets.push(...ticketChunk);
                     logger.info(`[NotificationService] Push notification sent to user: ${user_id}`);
                 } catch (error) {
                     logger.error(`[NotificationService] Error sending push notification chunk: ${error.message}`);
+                }
+            }
+
+            // Handle receipts/tickets to find invalid tokens
+            for (let ticket of tickets) {
+                if (ticket.status === 'error') {
+                    if (ticket.details && ticket.details.error === 'DeviceNotRegistered') {
+                        logger.warn(`[NotificationService] Token for user ${user_id} is no longer valid. Clearing from DB.`);
+                        await User.update({ push_token: null }, { where: { id: user_id } });
+                    } else {
+                        logger.error(`[NotificationService] Push ticket error for user ${user_id}: ${ticket.message}`);
+                    }
                 }
             }
         } else {

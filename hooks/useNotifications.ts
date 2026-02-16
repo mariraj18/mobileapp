@@ -55,9 +55,7 @@ export function useNotifications() {
 
     const saveTokenToServer = async (token: string) => {
         try {
-            const userStr = await AsyncStorage.getItem('user');
-            if (!userStr) return;
-            const user = JSON.parse(userStr);
+            if (!user?.id) return;
             const userTokenKey = `push_token_${user.id}`;
 
             const storedToken = await AsyncStorage.getItem(userTokenKey);

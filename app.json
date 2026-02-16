@@ -31,12 +31,12 @@
     "experiments": {
       "typedRoutes": true
     },
+    "owner": "mariraj",
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f197ef5a-6acc-4f27-8cd8-34a7e83ca5b5"
+        "projectId": "9ec9d6d6-b81a-407a-9141-f07f2afb748a"
       }
-    },
-    "owner": "mariraj"
+    }
   }
 }
