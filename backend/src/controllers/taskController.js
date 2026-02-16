@@ -78,9 +78,10 @@ const createTask = async (req, res, next) => {
       await TaskAssignment.bulkCreate(assignments, { transaction });
 
       for (const uid of assignedUserIds) {
-        sendNotification({
+        await sendNotification({
           user_id: uid,
           task_id: task.id,
+          project_id: project.id,
           type: NOTIFICATION_TYPES.TASK_ASSIGNMENT,
           message: `You have been assigned to task: "${task.title}" in project "${project.name}"`,
           data: {
@@ -391,15 +392,17 @@ const updateTask = async (req, res, next) => {
       });
 
       for (const user of assignedUsers) {
-        sendNotification({
+        await sendNotification({
           user_id: user.id,
           task_id: task.id,
+          project_id: task.project_id,
           type: NOTIFICATION_TYPES.DUE_DATE,
           message: `Due date updated for task: "${task.title}"`,
           data: {
             taskId: task.id,
             taskTitle: task.title,
             newDueDate: updates.due_date,
+            projectId: task.project_id,
           },
         });
       }
@@ -570,9 +573,10 @@ const assignUsers = async (req, res, next) => {
           { transaction }
         );
 
-        sendNotification({
+        await sendNotification({
           user_id: userId,
           task_id: id,
+          project_id: task.project_id,
           type: NOTIFICATION_TYPES.TASK_ASSIGNMENT,
           message: task.project_id
             ? `You have been assigned to task: "${task.title}" in project "${task.project.name}"`

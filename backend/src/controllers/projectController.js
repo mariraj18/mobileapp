@@ -77,7 +77,7 @@ const createProject = async (req, res, next) => {
       for (const memberId of otherMemberIds) {
         const user = await User.findByPk(memberId, { transaction });
         if (user) {
-          sendNotification({
+          await sendNotification({
             user_id: memberId,
             project_id: project.id,
             type: NOTIFICATION_TYPES.PROJECT_INVITE,

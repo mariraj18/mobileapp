@@ -103,23 +103,29 @@ const createComment = async (req, res, next) => {
     }
 
     // Send notifications
+    const notificationPromises = [];
     for (const notifyUserId of usersToNotify) {
-      sendNotification({
-        user_id: notifyUserId,
-        task_id: taskId,
-        type: NOTIFICATION_TYPES.COMMENT,
-        message: parentId
-          ? `${req.user.name} replied to a comment on task: "${task.title}"`
-          : `${req.user.name} commented on task: "${task.title}"`,
-        data: {
-          taskId: task.id,
-          taskTitle: task.title,
-          commentId: comment.id,
-          projectId: task.project?.id || null,
-          projectName: task.project?.name || 'Personal Task',
-        },
-      });
+      notificationPromises.push(
+        sendNotification({
+          user_id: notifyUserId,
+          task_id: taskId,
+          project_id: task.project?.id || null, // Added project_id
+          type: NOTIFICATION_TYPES.COMMENT,
+          message: parentId
+            ? `${req.user.name} replied to a comment on task: "${task.title}"`
+            : `${req.user.name} commented on task: "${task.title}"`,
+          data: {
+            taskId: task.id,
+            taskTitle: task.title,
+            commentId: comment.id,
+            projectId: task.project?.id || null,
+            projectName: task.project?.name || 'Personal Task',
+          },
+        })
+      );
     }
+
+    await Promise.all(notificationPromises);
 
     await transaction.commit();
 
