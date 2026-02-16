@@ -66,6 +66,10 @@ const projectSchemas = {
     description: Joi.string().allow('').max(1000).optional(),
     is_completed: Joi.boolean().optional(),
   }),
+
+  addMember: Joi.object({
+    userId: Joi.string().uuid().required(),
+  }),
 };
 
 const taskSchemas = {

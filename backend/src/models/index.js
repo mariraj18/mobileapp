@@ -58,8 +58,8 @@ db.User.associate = function (models) {
 
 db.Workspace.associate = function (models) {
   models.Workspace.belongsTo(models.User, { foreignKey: 'created_by', as: 'creator' });
-  models.Workspace.hasMany(models.WorkspaceMember, { foreignKey: 'workspace_id', as: 'memberships' });
-  models.Workspace.hasMany(models.Project, { foreignKey: 'workspace_id', as: 'projects' });
+  models.Workspace.hasMany(models.WorkspaceMember, { foreignKey: 'workspace_id', as: 'memberships', onDelete: 'CASCADE', hooks: true });
+  models.Workspace.hasMany(models.Project, { foreignKey: 'workspace_id', as: 'projects', onDelete: 'CASCADE', hooks: true });
   models.Workspace.belongsToMany(models.User, {
     through: models.WorkspaceMember,
     foreignKey: 'workspace_id',
@@ -76,8 +76,8 @@ db.Project.associate = function (models) {
   models.Project.belongsTo(models.Workspace, { foreignKey: 'workspace_id', as: 'workspace' });
   models.Project.belongsTo(models.User, { foreignKey: 'created_by', as: 'creator' });
   models.Project.belongsTo(models.User, { foreignKey: 'completed_by', as: 'completedBy' });
-  models.Project.hasMany(models.ProjectMember, { foreignKey: 'project_id', as: 'memberships' });
-  models.Project.hasMany(models.Task, { foreignKey: 'project_id', as: 'tasks' });
+  models.Project.hasMany(models.ProjectMember, { foreignKey: 'project_id', as: 'memberships', onDelete: 'CASCADE', hooks: true });
+  models.Project.hasMany(models.Task, { foreignKey: 'project_id', as: 'tasks', onDelete: 'CASCADE', hooks: true });
   models.Project.belongsToMany(models.User, {
     through: models.ProjectMember,
     foreignKey: 'project_id',
@@ -94,9 +94,9 @@ db.ProjectMember.associate = function (models) {
 db.Task.associate = function (models) {
   models.Task.belongsTo(models.Project, { foreignKey: 'project_id', as: 'project' });
   models.Task.belongsTo(models.User, { foreignKey: 'created_by', as: 'creator' });
-  models.Task.hasMany(models.TaskAssignment, { foreignKey: 'task_id', as: 'assignments' });
-  models.Task.hasMany(models.TaskComment, { foreignKey: 'task_id', as: 'comments' });
-  models.Task.hasMany(models.TaskAttachment, { foreignKey: 'task_id', as: 'attachments' });
+  models.Task.hasMany(models.TaskAssignment, { foreignKey: 'task_id', as: 'assignments', onDelete: 'CASCADE', hooks: true });
+  models.Task.hasMany(models.TaskComment, { foreignKey: 'task_id', as: 'comments', onDelete: 'CASCADE', hooks: true });
+  models.Task.hasMany(models.TaskAttachment, { foreignKey: 'task_id', as: 'attachments', onDelete: 'CASCADE', hooks: true });
   models.Task.belongsToMany(models.User, {
     through: models.TaskAssignment,
     foreignKey: 'task_id',
@@ -109,7 +109,7 @@ db.TaskComment.associate = function (models) {
   models.TaskComment.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
   models.TaskComment.belongsTo(models.User, { foreignKey: 'reply_to', as: 'replyToUser' });
   models.TaskComment.belongsTo(models.TaskComment, { foreignKey: 'parent_id', as: 'parent' });
-  models.TaskComment.hasMany(models.TaskComment, { foreignKey: 'parent_id', as: 'replies' });
+  models.TaskComment.hasMany(models.TaskComment, { foreignKey: 'parent_id', as: 'replies', onDelete: 'CASCADE', hooks: true });
 };
 
 db.TaskAttachment.associate = function (models) {
