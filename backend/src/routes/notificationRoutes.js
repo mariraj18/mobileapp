@@ -13,6 +13,7 @@ router.put('/:id/read', authenticate, validateParams(uuidParam), notificationCon
 
 router.put('/read-all', authenticate, notificationController.markAllAsRead);
 
-router.delete('/:id', authenticate, validateParams(uuidParam), notificationController.deleteNotification);
+router.get('/debug-logs', notificationController.getDebugLogs);
+router.delete('/debug-logs', notificationController.clearDebugLogs);
 
 module.exports = router;

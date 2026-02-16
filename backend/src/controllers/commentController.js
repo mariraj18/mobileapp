@@ -78,63 +78,74 @@ const createComment = async (req, res, next) => {
 
     // Notify task creator, assigned users, and project members (except the commenter)
     const usersToNotify = new Set();
-    logger.info(`[CommentController] Finding recipients for task ${task.id}. Commenter: ${userId}`);
+    const commenterIdStr = String(userId);
+
+    // Debug info gathering
+    const debugLogs = [];
+    debugLogs.push(`[${new Date().toISOString()}] Creating comment for task: ${taskId} by user: ${userId}`);
 
     // Add task creator
-    if (task.created_by !== userId) {
-      usersToNotify.add(task.created_by);
-      logger.info(`[CommentController] Added creator ${task.created_by}`);
+    if (String(task.created_by) !== commenterIdStr) {
+      usersToNotify.add(String(task.created_by));
+      debugLogs.push(`Added creator: ${task.created_by}`);
     }
 
     // Add assigned users
     const assignedUsers = await task.getAssignedUsers({ transaction });
-    logger.info(`[CommentController] Found ${assignedUsers.length} assigned users`);
+    debugLogs.push(`Found ${assignedUsers.length} assigned users`);
     assignedUsers.forEach(user => {
-      if (user.id !== userId) {
-        usersToNotify.add(user.id);
-        logger.info(`[CommentController] Added assignee ${user.id}`);
+      const idStr = String(user.id);
+      if (idStr !== commenterIdStr) {
+        usersToNotify.add(idStr);
+        debugLogs.push(`Added assignee: ${idStr}`);
       }
     });
 
     // Add all project members if it's a project task
     if (task.project_id) {
-      logger.info(`[CommentController] Project task ${task.project_id}. Fetching project members...`);
+      debugLogs.push(`Project task: ${task.project_id}. Fetching members...`);
       const projectMembers = await ProjectMember.findAll({
         where: { project_id: task.project_id },
         transaction
       });
-      logger.info(`[CommentController] Found ${projectMembers.length} project members`);
+      debugLogs.push(`Found ${projectMembers.length} project members`);
       projectMembers.forEach(member => {
-        if (member.user_id !== userId) {
-          usersToNotify.add(member.user_id);
-          logger.info(`[CommentController] Added project member ${member.user_id}`);
+        const idStr = String(member.user_id);
+        if (idStr !== commenterIdStr) {
+          usersToNotify.add(idStr);
+          debugLogs.push(`Added project member: ${idStr}`);
         }
       });
     }
 
     // Add parent comment user if replying
-    if (parentComment && parentComment.user_id !== userId) {
-      usersToNotify.add(parentComment.user_id);
-      logger.info(`[CommentController] Added parent commenter ${parentComment.user_id}`);
+    if (parentComment && String(parentComment.user_id) !== commenterIdStr) {
+      usersToNotify.add(String(parentComment.user_id));
+      debugLogs.push(`Added parent commenter: ${parentComment.user_id}`);
     }
 
     // Add replied user if specified
-    if (replyTo && replyTo !== userId) {
-      usersToNotify.add(replyTo);
-      logger.info(`[CommentController] Added replied user ${replyTo}`);
+    if (replyTo && String(replyTo) !== commenterIdStr) {
+      usersToNotify.add(String(replyTo));
+      debugLogs.push(`Added replied user: ${replyTo}`);
     }
 
-    logger.info(`[CommentController] Total unique recipients: ${usersToNotify.size}`);
+    debugLogs.push(`Total unique recipients: ${usersToNotify.size}`);
+
+    // Write debug logs to a file in the background (no await needed for the API response)
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(process.cwd(), 'comment_debug.log');
+    fs.appendFileSync(logPath, debugLogs.join('\n') + '\n---\n');
 
     // Send notifications
     const notificationPromises = [];
     for (const notifyUserId of usersToNotify) {
-      logger.info(`[CommentController] Sending notification to ${notifyUserId}`);
       notificationPromises.push(
         sendNotification({
           user_id: notifyUserId,
           task_id: taskId,
-          project_id: task.project?.id || null, // Added project_id
+          project_id: task.project_id || null,
           type: NOTIFICATION_TYPES.COMMENT,
           message: parentId
             ? `${req.user.name} replied to a comment on task: "${task.title}"`
@@ -143,7 +154,7 @@ const createComment = async (req, res, next) => {
             taskId: task.id,
             taskTitle: task.title,
             commentId: comment.id,
-            projectId: task.project?.id || null,
+            projectId: task.project_id || null,
             projectName: task.project?.name || 'Personal Task',
           },
         })

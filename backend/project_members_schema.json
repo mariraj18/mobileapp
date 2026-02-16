@@ -1,0 +1,22 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "project_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "user_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "added_by",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "added_at",
+    "data_type": "timestamp with time zone"
+  }
+]

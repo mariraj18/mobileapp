@@ -1,0 +1,30 @@
+{
+  "task_id": "0f6dc3c1-cb12-40ee-980a-63b10e102195",
+  "project_id": "2479a4bc-26c3-4749-b9f3-0f305bb55123",
+  "project_populated": true,
+  "recipients": [
+    {
+      "type": "creator",
+      "id": "4d11be90-958e-424b-9693-3ae156980901"
+    },
+    {
+      "type": "pm_raw",
+      "user_id": "4d11be90-958e-424b-9693-3ae156980901"
+    },
+    {
+      "type": "pm_added",
+      "id": "4d11be90-958e-424b-9693-3ae156980901"
+    },
+    {
+      "type": "pm_raw",
+      "user_id": "28c94ef0-c1c7-4be4-b3d3-d73236a44ba1"
+    },
+    {
+      "type": "pm_added",
+      "id": "28c94ef0-c1c7-4be4-b3d3-d73236a44ba1"
+    }
+  ],
+  "assigned_count": 0,
+  "pm_count": 2,
+  "total_unique": 2
+}

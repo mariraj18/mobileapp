@@ -273,6 +273,55 @@ const sendProjectCompletedNotification = async (userId, projectId, completedByUs
   });
 };
 
+const getDebugLogs = async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(process.cwd(), 'comment_debug.log');
+
+    if (!fs.existsSync(logPath)) {
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'No debug logs found',
+        data: ''
+      });
+    }
+
+    const logs = fs.readFileSync(logPath, 'utf8');
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+const clearDebugLogs = async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(process.cwd(), 'comment_debug.log');
+
+    if (fs.existsSync(logPath)) {
+      fs.unlinkSync(logPath);
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Debug logs cleared'
+    });
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   getNotifications,
   getUnreadCount,
@@ -284,4 +333,6 @@ module.exports = {
   sendProjectInviteNotification,
   sendTaskAssignmentNotification,
   sendProjectCompletedNotification,
+  getDebugLogs,
+  clearDebugLogs,
 };
