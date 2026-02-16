@@ -1,0 +1,64 @@
+[
+  {
+    "id": "7e8cdf6f-f920-41e1-819d-88e218dc856e",
+    "user_id": "1f89b3f5-7318-4417-b9f5-0ef3a1ff1c47",
+    "task_id": null,
+    "project_id": null,
+    "type": "ASSIGNMENT",
+    "message": "Welcome back, Mari!",
+    "data": {
+      "type": "WELCOME_BACK"
+    },
+    "is_read": true,
+    "created_at": "2026-02-16T12:37:31.794Z"
+  },
+  {
+    "id": "aa7eb88a-851d-4c75-9581-de95c6ebdfb9",
+    "user_id": "1f89b3f5-7318-4417-b9f5-0ef3a1ff1c47",
+    "task_id": null,
+    "project_id": null,
+    "type": "ASSIGNMENT",
+    "message": "Welcome back, Mari!",
+    "data": {
+      "type": "WELCOME_BACK"
+    },
+    "is_read": false,
+    "created_at": "2026-02-16T12:22:55.707Z"
+  },
+  {
+    "id": "a17c085f-cced-41ae-a186-65a118b11019",
+    "user_id": "1f89b3f5-7318-4417-b9f5-0ef3a1ff1c47",
+    "task_id": null,
+    "project_id": null,
+    "type": "ASSIGNMENT",
+    "message": "Welcome back, Mari!",
+    "data": null,
+    "is_read": true,
+    "created_at": "2026-02-16T11:08:13.561Z"
+  },
+  {
+    "id": "a9fcc5c3-0e6d-42a5-8ea6-1ac5991be9ab",
+    "user_id": "1f89b3f5-7318-4417-b9f5-0ef3a1ff1c47",
+    "task_id": null,
+    "project_id": "6f2be6d9-572a-4aa7-b53e-0e138fbb2416",
+    "type": "PROJECT_INVITE",
+    "message": "You have been added to project: \"Test\" in workspace \"Test\"",
+    "data": null,
+    "is_read": true,
+    "created_at": "2026-02-16T10:27:37.321Z"
+  },
+  {
+    "id": "bd27c3d3-c843-42e0-bc53-bed7da98adfd",
+    "user_id": "1f89b3f5-7318-4417-b9f5-0ef3a1ff1c47",
+    "task_id": null,
+    "project_id": null,
+    "type": "COMMENT",
+    "message": "System Test: Notifications are working for mariraj@gmail.com!",
+    "data": {
+      "test": true,
+      "timestamp": "2026-02-16T06:46:38.320Z"
+    },
+    "is_read": false,
+    "created_at": "2026-02-16T06:46:38.320Z"
+  }
+]

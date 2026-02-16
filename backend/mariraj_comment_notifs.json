@@ -1,0 +1,16 @@
+[
+  {
+    "id": "bd27c3d3-c843-42e0-bc53-bed7da98adfd",
+    "user_id": "1f89b3f5-7318-4417-b9f5-0ef3a1ff1c47",
+    "task_id": null,
+    "project_id": null,
+    "type": "COMMENT",
+    "message": "System Test: Notifications are working for mariraj@gmail.com!",
+    "data": {
+      "test": true,
+      "timestamp": "2026-02-16T06:46:38.320Z"
+    },
+    "is_read": false,
+    "created_at": "2026-02-16T06:46:38.320Z"
+  }
+]

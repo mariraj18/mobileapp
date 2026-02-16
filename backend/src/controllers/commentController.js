@@ -78,29 +78,36 @@ const createComment = async (req, res, next) => {
 
     // Notify task creator, assigned users, and project members (except the commenter)
     const usersToNotify = new Set();
+    logger.info(`[CommentController] Finding recipients for task ${task.id}. Commenter: ${userId}`);
 
     // Add task creator
     if (task.created_by !== userId) {
       usersToNotify.add(task.created_by);
+      logger.info(`[CommentController] Added creator ${task.created_by}`);
     }
 
     // Add assigned users
     const assignedUsers = await task.getAssignedUsers({ transaction });
+    logger.info(`[CommentController] Found ${assignedUsers.length} assigned users`);
     assignedUsers.forEach(user => {
       if (user.id !== userId) {
         usersToNotify.add(user.id);
+        logger.info(`[CommentController] Added assignee ${user.id}`);
       }
     });
 
     // Add all project members if it's a project task
     if (task.project_id) {
+      logger.info(`[CommentController] Project task ${task.project_id}. Fetching project members...`);
       const projectMembers = await ProjectMember.findAll({
         where: { project_id: task.project_id },
         transaction
       });
+      logger.info(`[CommentController] Found ${projectMembers.length} project members`);
       projectMembers.forEach(member => {
         if (member.user_id !== userId) {
           usersToNotify.add(member.user_id);
+          logger.info(`[CommentController] Added project member ${member.user_id}`);
         }
       });
     }
@@ -108,16 +115,21 @@ const createComment = async (req, res, next) => {
     // Add parent comment user if replying
     if (parentComment && parentComment.user_id !== userId) {
       usersToNotify.add(parentComment.user_id);
+      logger.info(`[CommentController] Added parent commenter ${parentComment.user_id}`);
     }
 
     // Add replied user if specified
     if (replyTo && replyTo !== userId) {
       usersToNotify.add(replyTo);
+      logger.info(`[CommentController] Added replied user ${replyTo}`);
     }
+
+    logger.info(`[CommentController] Total unique recipients: ${usersToNotify.size}`);
 
     // Send notifications
     const notificationPromises = [];
     for (const notifyUserId of usersToNotify) {
+      logger.info(`[CommentController] Sending notification to ${notifyUserId}`);
       notificationPromises.push(
         sendNotification({
           user_id: notifyUserId,
