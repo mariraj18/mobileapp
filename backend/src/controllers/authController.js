@@ -34,13 +34,15 @@ const register = async (req, res, next) => {
 
     logger.info(`User registered: ${user.email}`);
 
-    // Send welcome notification
-    sendNotification({
-      user_id: user.id,
-      type: NOTIFICATION_TYPES.ASSIGNMENT,
-      message: `Welcome to Taskflow, ${user.name}! We're glad to have you here.`,
-      data: { type: 'WELCOME' }
-    });
+    // Send welcome notification with a slight delay to allow push token registration
+    setTimeout(() => {
+      sendNotification({
+        user_id: user.id,
+        type: NOTIFICATION_TYPES.ASSIGNMENT,
+        message: `Welcome to Taskflow, ${user.name}! We're glad to have you here.`,
+        data: { type: 'WELCOME' }
+      });
+    }, 3000);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -81,13 +83,15 @@ const login = async (req, res, next) => {
 
     logger.info(`User logged in: ${user.email}`);
 
-    // Send welcome notification on login
-    sendNotification({
-      user_id: user.id,
-      type: NOTIFICATION_TYPES.ASSIGNMENT,
-      message: `Welcome back, ${user.name}!`,
-      data: { type: 'WELCOME_BACK' }
-    });
+    // Send welcome notification on login with delay
+    setTimeout(() => {
+      sendNotification({
+        user_id: user.id,
+        type: NOTIFICATION_TYPES.ASSIGNMENT,
+        message: `Welcome back, ${user.name}!`,
+        data: { type: 'WELCOME_BACK' }
+      });
+    }, 3000);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

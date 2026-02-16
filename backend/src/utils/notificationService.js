@@ -27,12 +27,22 @@ const sendNotification = async ({ user_id, task_id, project_id, type, message, d
         const user = await User.findByPk(user_id);
 
         if (user && user.push_token && Expo.isExpoPushToken(user.push_token)) {
+            // Determine a better title based on notification type
+            let pushTitle = 'Taskflow Update';
+            if (type === 'PROJECT_INVITE') pushTitle = 'Project Invitation';
+            if (type === 'ASSIGNMENT' || type === 'TASK_ASSIGNMENT') pushTitle = 'New Task Assigned';
+            if (type === 'COMMENT') pushTitle = 'New Comment';
+            if (data && data.type === 'WELCOME') pushTitle = 'Welcome to Taskflow!';
+            if (data && data.type === 'WELCOME_BACK') pushTitle = 'Welcome Back!';
+
             const pushMessages = [{
                 to: user.push_token,
                 sound: 'default',
-                title: 'Taskflow Update',
+                title: pushTitle,
                 body: message,
                 data: { ...data, notificationId: notification.id },
+                priority: 'high',
+                channelId: 'default',
             }];
 
             const chunks = expo.chunkPushNotifications(pushMessages);
