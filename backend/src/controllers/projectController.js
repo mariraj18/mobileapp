@@ -4,6 +4,7 @@ const { getPaginationParams, buildPaginatedResponse } = require('../utils/helper
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const { sequelize } = require('../models');
+const { sendNotification } = require('../utils/notificationService');
 
 const createProject = async (req, res, next) => {
   const transaction = await sequelize.transaction();
@@ -76,7 +77,7 @@ const createProject = async (req, res, next) => {
       for (const memberId of otherMemberIds) {
         const user = await User.findByPk(memberId, { transaction });
         if (user) {
-          await Notification.create({
+          sendNotification({
             user_id: memberId,
             project_id: project.id,
             type: NOTIFICATION_TYPES.PROJECT_INVITE,
@@ -87,7 +88,7 @@ const createProject = async (req, res, next) => {
               workspaceId: workspace.id,
               workspaceName: workspace.name,
             },
-          }, { transaction });
+          });
         }
       }
     }
@@ -556,8 +557,8 @@ const addProjectMember = async (req, res, next) => {
     }
 
     // Check if current user has appropriate role (owner/admin) OR is project creator
-    const hasPermission = isProjectCreator || 
-                         (workspaceMembership && [ROLES.OWNER, ROLES.ADMIN].includes(workspaceMembership.role));
+    const hasPermission = isProjectCreator ||
+      (workspaceMembership && [ROLES.OWNER, ROLES.ADMIN].includes(workspaceMembership.role));
 
     if (!hasPermission) {
       await transaction.rollback();
@@ -610,8 +611,9 @@ const addProjectMember = async (req, res, next) => {
     const workspace = await Workspace.findByPk(project.workspace_id, { transaction });
 
     if (user) {
-      await Notification.create({
+      sendNotification({
         user_id: userId,
+        project_id: project.id,
         type: NOTIFICATION_TYPES.PROJECT_INVITE,
         message: `You have been added to project: "${project.name}" in workspace "${workspace.name}"`,
         data: {
@@ -620,7 +622,7 @@ const addProjectMember = async (req, res, next) => {
           workspaceId: workspace.id,
           workspaceName: workspace.name,
         },
-      }, { transaction });
+      });
     }
 
     await transaction.commit();

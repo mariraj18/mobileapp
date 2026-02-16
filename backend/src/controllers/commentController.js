@@ -3,7 +3,7 @@ const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES } = require('../../confi
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const { sequelize } = require('../models');
-const { publishTask } = require('../utils/queue');
+const { sendNotification } = require('../utils/notificationService');
 
 const createComment = async (req, res, next) => {
   const transaction = await sequelize.transaction();
@@ -104,7 +104,7 @@ const createComment = async (req, res, next) => {
 
     // Send notifications
     for (const notifyUserId of usersToNotify) {
-      await publishTask('notification', {
+      sendNotification({
         user_id: notifyUserId,
         task_id: taskId,
         type: NOTIFICATION_TYPES.COMMENT,
@@ -123,10 +123,7 @@ const createComment = async (req, res, next) => {
 
     await transaction.commit();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Comment created on task: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Comment created on task: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -247,10 +244,7 @@ const updateComment = async (req, res, next) => {
     comment.content = content;
     await comment.save();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Comment updated by ${req.user.email}`,
-    });
+    logger.info(`Comment updated by ${req.user.email}`);
 
     const updatedComment = await TaskComment.findByPk(id, {
       include: [
@@ -324,10 +318,7 @@ const deleteComment = async (req, res, next) => {
 
     await comment.destroy();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Comment deleted by ${req.user.email}`,
-    });
+    logger.info(`Comment deleted by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

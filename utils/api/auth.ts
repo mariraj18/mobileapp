@@ -8,6 +8,7 @@ export interface User {
   email: string;
   is_active: boolean;
   profile_image?: string;
+  created_at?: string;
 }
 
 export interface AuthResponse {

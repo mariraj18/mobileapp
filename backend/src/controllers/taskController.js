@@ -4,7 +4,7 @@ const { getPaginationParams, buildPaginatedResponse } = require('../utils/helper
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const { sequelize } = require('../models');
-const { publishTask } = require('../utils/queue');
+const { sendNotification } = require('../utils/notificationService');
 
 const createTask = async (req, res, next) => {
   const transaction = await sequelize.transaction();
@@ -78,7 +78,7 @@ const createTask = async (req, res, next) => {
       await TaskAssignment.bulkCreate(assignments, { transaction });
 
       for (const uid of assignedUserIds) {
-        await publishTask('notification', {
+        sendNotification({
           user_id: uid,
           task_id: task.id,
           type: NOTIFICATION_TYPES.TASK_ASSIGNMENT,
@@ -95,10 +95,7 @@ const createTask = async (req, res, next) => {
 
     await transaction.commit();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Task created: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Task created: ${task.title} by ${req.user.email}`);
 
     const createdTask = await Task.findByPk(task.id, {
       include: [
@@ -394,7 +391,7 @@ const updateTask = async (req, res, next) => {
       });
 
       for (const user of assignedUsers) {
-        await publishTask('notification', {
+        sendNotification({
           user_id: user.id,
           task_id: task.id,
           type: NOTIFICATION_TYPES.DUE_DATE,
@@ -408,10 +405,7 @@ const updateTask = async (req, res, next) => {
       }
     }
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Task updated: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Task updated: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -481,10 +475,7 @@ const deleteTask = async (req, res, next) => {
 
     await task.destroy();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Task deleted: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Task deleted: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -579,7 +570,7 @@ const assignUsers = async (req, res, next) => {
           { transaction }
         );
 
-        await publishTask('notification', {
+        sendNotification({
           user_id: userId,
           task_id: id,
           type: NOTIFICATION_TYPES.TASK_ASSIGNMENT,
@@ -600,10 +591,7 @@ const assignUsers = async (req, res, next) => {
 
     await transaction.commit();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Users assigned to task: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Users assigned to task: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -681,10 +669,7 @@ const unassignUsers = async (req, res, next) => {
       },
     });
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Users unassigned from task: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Users unassigned from task: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -924,10 +909,7 @@ const createStandaloneTask = async (req, res, next) => {
 
     console.log('Task created:', task.id);
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Standalone task created: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Standalone task created: ${task.title} by ${req.user.email}`);
 
     const createdTask = await Task.findByPk(task.id, {
       include: [
@@ -1033,10 +1015,7 @@ const updateStandaloneTask = async (req, res, next) => {
     Object.assign(task, updates);
     await task.save();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Standalone task updated: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Standalone task updated: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -1080,10 +1059,7 @@ const deleteStandaloneTask = async (req, res, next) => {
 
     await task.destroy();
 
-    await publishTask('activity-log', {
-      level: 'info',
-      message: `Standalone task deleted: ${task.title} by ${req.user.email}`,
-    });
+    logger.info(`Standalone task deleted: ${task.title} by ${req.user.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

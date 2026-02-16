@@ -7,12 +7,13 @@ const { Expo } = require('expo-server-sdk');
 const expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
 async function processNotification(job) {
-    const { user_id, task_id, type, message, data } = job.data;
+    const { user_id, task_id, project_id, type, message, data } = job.data;
 
     // Create the in-app notification record
     const notification = await Notification.create({
         user_id,
         task_id,
+        project_id,
         type,
         message,
         data,

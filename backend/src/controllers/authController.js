@@ -7,6 +7,8 @@ const {
 } = require('../utils/helpers');
 const { HTTP_STATUS, ERROR_MESSAGES } = require('../../config/constants');
 const logger = require('../utils/logger');
+const { sendNotification } = require('../utils/notificationService');
+const { NOTIFICATION_TYPES } = require('../../config/constants');
 
 const register = async (req, res, next) => {
   try {
@@ -31,6 +33,14 @@ const register = async (req, res, next) => {
     const refreshToken = generateRefreshToken(user.id);
 
     logger.info(`User registered: ${user.email}`);
+
+    // Send welcome notification
+    sendNotification({
+      user_id: user.id,
+      type: NOTIFICATION_TYPES.ASSIGNMENT,
+      message: `Welcome to Taskflow, ${user.name}! We're glad to have you here.`,
+      data: { type: 'WELCOME' }
+    });
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -70,6 +80,14 @@ const login = async (req, res, next) => {
     const refreshToken = generateRefreshToken(user.id);
 
     logger.info(`User logged in: ${user.email}`);
+
+    // Send welcome notification on login
+    sendNotification({
+      user_id: user.id,
+      type: NOTIFICATION_TYPES.ASSIGNMENT,
+      message: `Welcome back, ${user.name}!`,
+      data: { type: 'WELCOME_BACK' }
+    });
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

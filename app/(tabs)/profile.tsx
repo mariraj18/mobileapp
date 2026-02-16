@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Stack, useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import {
   User,
   Mail,
@@ -89,8 +90,9 @@ export default function ProfileScreen() {
     router.replace('/(auth)/login');
   };
 
-  const copyUserCode = () => {
+  const copyUserCode = async () => {
     if (user?.user_id) {
+      await Clipboard.setStringAsync(user.user_id);
       Alert.alert('Copied!', 'User code copied to clipboard');
     }
   };

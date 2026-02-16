@@ -3,6 +3,7 @@ const { HTTP_STATUS, NOTIFICATION_TYPES } = require('../../config/constants');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helpers');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
+const { sendNotification } = require('../utils/notificationService');
 
 // Import WebSocket server (make sure to pass it from app.js)
 let websocketServer = null;
@@ -20,9 +21,6 @@ const getNotifications = async (req, res, next) => {
 
     const whereClause = {
       user_id: userId,
-      created_at: {
-        [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) // Only last 24 hours
-      }
     };
 
     if (unreadOnly) {
@@ -198,21 +196,15 @@ const deleteNotification = async (req, res, next) => {
 // Helper function to send real-time notifications
 const sendRealTimeNotification = async (userId, notificationData) => {
   try {
-    // Save to database
-    const notification = await Notification.create({
+    // Call notification service directly
+    await sendNotification({
       user_id: userId,
       ...notificationData,
     });
 
-    // Send via WebSocket if available
-    if (websocketServer) {
-      websocketServer.sendToUser(userId, {
-        type: 'NEW_NOTIFICATION',
-        data: notification,
-      });
-    }
-
-    return notification;
+    // Note: WebSocket real-time update will be missing until moved to worker or handled here
+    // For now we prioritize push and persistence via the service
+    return true;
   } catch (error) {
     logger.error('Error sending real-time notification:', error);
     return null;
