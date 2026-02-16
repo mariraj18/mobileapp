@@ -1,4 +1,4 @@
-const { TaskComment, User, Task, Project, WorkspaceMember, Notification } = require('../models');
+const { TaskComment, User, Task, Project, WorkspaceMember, Notification, ProjectMember } = require('../models');
 const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES } = require('../../config/constants');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
