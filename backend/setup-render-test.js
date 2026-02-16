@@ -2,29 +2,26 @@ require('dotenv').config();
 const { User, Notification } = require('./src/models');
 const { NOTIFICATION_TYPES } = require('./config/constants');
 const { sequelize } = require('./src/models');
-const bcrypt = require('bcrypt');
 
 async function setup() {
     try {
         await sequelize.authenticate();
 
-        // Create new test user
+        // Create or update test user
         const email = 'notif-test@gmail.com';
         const password = 'password123';
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
 
         let user = await User.findOne({ where: { email } });
         if (!user) {
             user = await User.create({
                 name: 'Notification Tester',
                 email: email,
-                password: hashedPassword,
+                password: password, // Plain password, will be hashed by beforeCreate hook
                 is_active: true
             });
             console.log(`Created new user: ${email}`);
         } else {
-            user.password = hashedPassword;
+            user.password = password; // Will be hashed by beforeUpdate hook
             await user.save();
             console.log(`Updated existing user: ${email}`);
         }
