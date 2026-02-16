@@ -140,7 +140,8 @@ export default function RegisterScreen() {
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+            keyboardVerticalOffset={Platform.OS === 'android' ? -200 : 0}
         >
             <LinearGradient
                 colors={[colors.background, colors.cardDark]}
@@ -152,6 +153,7 @@ export default function RegisterScreen() {
                     showsVerticalScrollIndicator={false}
                     style={{ opacity: fadeAnim }}
                     contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
                 >
                     {/* Decorative Circles */}
                     <View style={styles.decorativeContainer}>
@@ -344,12 +346,18 @@ export default function RegisterScreen() {
                             <View style={styles.termsContainer}>
                                 <Text style={[styles.termsText, themedStyles.termsText]}>
                                     By creating an account, you agree to our{' '}
-                                    <TouchableOpacity onPress={() => setPrivacyModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                        <Text style={[styles.termsLink, { color: colors.primary }]}>Terms</Text>
-                                    </TouchableOpacity> &{' '}
-                                    <TouchableOpacity onPress={() => setPrivacyModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                        <Text style={[styles.termsLink, { color: colors.primary }]}>Privacy Policy</Text>
-                                    </TouchableOpacity>
+                                    <Text
+                                        style={[styles.termsLink, { color: colors.primary }]}
+                                        onPress={() => setPrivacyModalVisible(true)}
+                                    >
+                                        Terms
+                                    </Text> &{' '}
+                                    <Text
+                                        style={[styles.termsLink, { color: colors.primary }]}
+                                        onPress={() => setPrivacyModalVisible(true)}
+                                    >
+                                        Privacy Policy
+                                    </Text>
                                 </Text>
                             </View>
                         </LinearGradient>
