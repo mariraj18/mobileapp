@@ -1,4 +1,4 @@
-const { Workspace, WorkspaceMember, User, Project, ProjectMember } = require('../models');
+const { Workspace, WorkspaceMember, User, Project, ProjectMember, Task } = require('../models');
 const { HTTP_STATUS, ERROR_MESSAGES, ROLES } = require('../../config/constants');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helpers');
 const logger = require('../utils/logger');
@@ -86,10 +86,19 @@ const getWorkspaces = async (req, res, next) => {
           where: { workspace_id: workspace.id, is_completed: false },
         });
 
+        const taskCount = await Task.count({
+          include: [{
+            model: Project,
+            as: 'project',
+            where: { workspace_id: workspace.id }
+          }]
+        });
+
         return {
           ...workspace,
           memberCount,
           projectCount,
+          taskCount,
         };
       })
     );
@@ -154,13 +163,22 @@ const getWorkspaceById = async (req, res, next) => {
       where: { workspace_id: id, is_completed: false },
     });
 
+    const taskCount = await Task.count({
+      include: [{
+        model: Project,
+        as: 'project',
+        where: { workspace_id: id }
+      }]
+    });
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
         ...workspace.toJSON(),
         memberCount,
         projectCount,
-        userRole: membership.role,
+        taskCount,
+        role: membership.role,
       },
     });
   } catch (error) {

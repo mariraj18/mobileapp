@@ -123,9 +123,9 @@ class ApiClient {
     }
 
     try {
-      console.log(`[API] ${options.method || 'GET'} ${baseURL}${endpoint}`);
+      console.log(`[API-CLIENT] Request: ${options.method || 'GET'} ${baseURL}${endpoint}`);
+      if (options.body) console.log(`[API-CLIENT] Body:`, options.body);
 
-      // FIXED: Added mode: 'cors' and credentials: 'omit'
       const response = await fetch(`${baseURL}${endpoint}`, {
         ...options,
         headers,

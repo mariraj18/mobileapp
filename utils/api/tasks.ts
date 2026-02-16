@@ -30,6 +30,7 @@ export interface Task {
     name: string;
     workspace_id: string;
     is_completed: boolean;
+    created_by: string;
   };
   commentCount?: number;
   attachmentCount?: number;

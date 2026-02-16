@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, Animated, Platform, ScrollView } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { workspaceApi, Workspace } from '@/utils/api/workspaces';
+import { workspaceApi, Workspace, WorkspaceMember } from '@/utils/api/workspaces';
 import { projectApi, Project } from '@/utils/api/projects';
+import { memberApi } from '@/utils/api/members';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Plus,
   X,
@@ -17,16 +19,21 @@ import {
   MoreHorizontal,
   Eye,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Check,
+  Trash2
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function WorkspaceDetailsScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -36,6 +43,8 @@ export default function WorkspaceDetailsScreen() {
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -68,9 +77,10 @@ export default function WorkspaceDetailsScreen() {
 
   const loadData = async () => {
     setLoading(true);
-    const [wsResponse, projectsResponse] = await Promise.all([
+    const [wsResponse, projectsResponse, membersResponse] = await Promise.all([
       workspaceApi.getById(id!),
-      projectApi.getByWorkspace(id!)
+      projectApi.getByWorkspace(id!),
+      workspaceApi.getMembers(id!)
     ]);
 
     if (wsResponse.success) {
@@ -79,6 +89,10 @@ export default function WorkspaceDetailsScreen() {
 
     if (projectsResponse.success) {
       setProjects(projectsResponse.data);
+    }
+
+    if (membersResponse.success) {
+      setWorkspaceMembers(membersResponse.data);
     }
 
     setLoading(false);
@@ -91,17 +105,46 @@ export default function WorkspaceDetailsScreen() {
     }
 
     setCreating(true);
-    const response = await projectApi.create(id!, newProjectName, newProjectDesc);
+    const response = await projectApi.create(id!, newProjectName, newProjectDesc, selectedMemberIds);
     setCreating(false);
 
     if (response.success) {
       setNewProjectName('');
       setNewProjectDesc('');
+      setSelectedMemberIds([]);
       setModalVisible(false);
       loadData();
+      Alert.alert('Success', 'Project created successfully');
     } else {
       Alert.alert('Error', response.message || 'Failed to create project');
     }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    Alert.alert('DEBUG', 'handleDeleteWorkspace entered');
+    Alert.alert(
+      'Delete Workspace',
+      'Are you sure you want to delete this workspace? This will delete all projects and tasks within it. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            Alert.alert('DEBUG', 'Starting API call to delete workspace');
+            console.log(`[WorkspaceDetails] Deleting workspace ${id}`);
+            const response = await workspaceApi.delete(id!);
+            console.log(`[WorkspaceDetails] Delete response:`, response);
+            Alert.alert('DEBUG', `API Result: success=${response.success}`);
+            if (response.success) {
+              router.replace('/(tabs)');
+            } else {
+              Alert.alert('Error', response.message || 'Failed to delete workspace');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getRoleColor = (role: string | undefined) => {
@@ -144,7 +187,7 @@ export default function WorkspaceDetailsScreen() {
               <Folder size={24} color={colors.primary} />
             </View>
             <View style={[styles.taskCount, { backgroundColor: colors.success + '15' }]}>
-              <Text style={[styles.taskCountText, { color: colors.success }]}>12</Text>
+              <Text style={[styles.taskCountText, { color: colors.success }]}>{item.taskCount || 0}</Text>
             </View>
           </View>
 
@@ -219,7 +262,9 @@ export default function WorkspaceDetailsScreen() {
                 </Text>
                 <View style={styles.listTasks}>
                   <Clock size={12} color={colors.success} />
-                  <Text style={[styles.listTasksText, { color: colors.success }]}>12 tasks</Text>
+                  <Text style={[styles.listTasksText, { color: colors.success }]}>
+                    {item.taskCount || 0} {item.taskCount === 1 ? 'task' : 'tasks'}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -278,7 +323,14 @@ export default function WorkspaceDetailsScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <Animated.View style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+              paddingTop: insets.top + (Platform.OS === 'ios' ? 60 : 80), // Adjust for header
+            }
+          ]}>
             <LinearGradient
               colors={[colors.cardLight, colors.cardDark]}
               style={[styles.headerGradient, { borderColor: colors.border, shadowColor: colors.shadow }]}
@@ -293,6 +345,15 @@ export default function WorkspaceDetailsScreen() {
                 </View>
 
                 <View style={styles.headerActions}>
+                  {(workspace.role === 'OWNER' || workspace.created_by === user?.id) && (
+                    <TouchableOpacity
+                      style={[styles.headerOptionButton, { backgroundColor: colors.secondary + '15' }]}
+                      onPress={handleDeleteWorkspace}
+                    >
+                      <Trash2 size={18} color={colors.secondary} />
+                    </TouchableOpacity>
+                  )}
+
                   <TouchableOpacity
                     style={[styles.viewToggle, { backgroundColor: colors.primary + '15' }]}
                     onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
@@ -324,9 +385,11 @@ export default function WorkspaceDetailsScreen() {
                   <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Active</Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-                <View style={styles.statItem}>
+                <View style={[styles.statItem, { opacity: 0.8 }]}>
                   <Users size={20} color={colors.secondary} />
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>8 members</Text>
+                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                    {workspace.memberCount || 0} {workspace.memberCount === 1 ? 'member' : 'members'}
+                  </Text>
                 </View>
               </View>
             </LinearGradient>
@@ -349,53 +412,57 @@ export default function WorkspaceDetailsScreen() {
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Create your first project to start organizing tasks
             </Text>
-            <TouchableOpacity
-              style={[styles.emptyButton, { shadowColor: colors.primary }]}
-              onPress={() => setModalVisible(true)}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                style={styles.emptyButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+            {workspace.role === 'OWNER' && (
+              <TouchableOpacity
+                style={[styles.emptyButton, { shadowColor: colors.primary }]}
+                onPress={() => setModalVisible(true)}
               >
-                <Plus size={18} color={colors.textLight} />
-                <Text style={[styles.emptyButtonText, { color: colors.textLight }]}>Create Project</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  style={styles.emptyButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Plus size={18} color={colors.textLight} />
+                  <Text style={[styles.emptyButtonText, { color: colors.textLight }]}>Create Project</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </Animated.View>
         }
       />
 
-      <Animated.View
-        style={[
-          styles.fabContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{
-              scale: fadeAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.5, 1]
-              })
-            }]
-          }
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.fab, { shadowColor: colors.primary }]}
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.8}
+      {workspace.role === 'OWNER' && (
+        <Animated.View
+          style={[
+            styles.fabContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{
+                scale: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.5, 1]
+                })
+              }]
+            }
+          ]}
         >
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            style={styles.fabGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            style={[styles.fab, { shadowColor: colors.primary }]}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.8}
           >
-            <Plus color={colors.textLight} size={24} />
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              style={styles.fabGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Plus color={colors.textLight} size={24} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       {/* Create Project Modal */}
       <Modal
@@ -447,6 +514,55 @@ export default function WorkspaceDetailsScreen() {
                   autoFocus
                 />
               </View>
+
+              {workspaceMembers.length > 0 && (
+                <View style={styles.memberSelectionContainer}>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>Add Members</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.memberScroll}
+                  >
+                    {workspaceMembers.map((member) => {
+                      const isSelected = selectedMemberIds.includes(member.userId);
+                      return (
+                        <TouchableOpacity
+                          key={member.id}
+                          style={[
+                            styles.memberItem,
+                            isSelected && { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
+                            { borderColor: colors.border }
+                          ]}
+                          onPress={() => {
+                            if (isSelected) {
+                              setSelectedMemberIds(selectedMemberIds.filter(mid => mid !== member.userId));
+                            } else {
+                              setSelectedMemberIds([...selectedMemberIds, member.userId]);
+                            }
+                          }}
+                        >
+                          <LinearGradient
+                            colors={isSelected ? [colors.primary, colors.secondary] : [colors.cardLight, colors.cardDark]}
+                            style={styles.memberAvatar}
+                          >
+                            <Text style={[styles.memberAvatarText, isSelected && { color: colors.textLight }]}>
+                              {member.name.charAt(0).toUpperCase()}
+                            </Text>
+                          </LinearGradient>
+                          <Text style={[styles.memberNameText, { color: colors.text }]} numberOfLines={1}>
+                            {member.name.split(' ')[0]}
+                          </Text>
+                          {isSelected && (
+                            <View style={[styles.checkBadge, { backgroundColor: colors.primary }]}>
+                              <Check size={8} color={colors.textLight} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
 
               <View style={[styles.inputContainer, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
                 <TextInput
@@ -513,6 +629,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
+  },
+  headerOptionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fc350b30',
   },
   roleContainer: {
     flexDirection: 'row',
@@ -862,5 +987,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
+  },
+  memberSelectionContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 8,
+  },
+  memberScroll: {
+    paddingRight: 10,
+    gap: 12,
+  },
+  memberItem: {
+    width: 60,
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  memberAvatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
+  },
+  memberNameText: {
+    fontSize: 10,
+    fontFamily: 'Inter_500Medium',
+    textAlign: 'center',
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ffffff',
   },
 });

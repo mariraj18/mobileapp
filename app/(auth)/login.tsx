@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, KeyboardAvoidingView, Platform, Dimensions, Modal, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock, LogIn, Eye, EyeOff, Sparkles, ChevronRight } from 'lucide-react-native';
+import { Mail, Lock, LogIn, Eye, EyeOff, ChevronRight, X, Shield } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '@/contexts/ThemeContext';
+import { BlurView } from 'expo-blur';
+
 
 const { width } = Dimensions.get('window');
 
@@ -13,6 +16,64 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const { theme, colors } = useTheme();
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+
+  // Dynamic styles that depend on theme colors
+  const themedStyles = {
+    brandBadge: {
+      backgroundColor: `${colors.primary}15`,
+      borderColor: `${colors.primary}30`,
+    },
+    brandBadgeText: {
+      color: colors.primary,
+    },
+    welcomeTitle: {
+      color: colors.text,
+    },
+    formCard: {
+      shadowColor: colors.shadow,
+    },
+    formGradient: {
+      borderColor: colors.border,
+    },
+    inputLabel: {
+      color: colors.text,
+    },
+    input: {
+      color: colors.text,
+    },
+    forgotPasswordText: {
+      color: colors.primary,
+    },
+    loginButton: {
+      shadowColor: colors.primary,
+    },
+    loginButtonText: {
+      color: colors.textLight,
+    },
+    dividerLine: {
+      backgroundColor: colors.border,
+    },
+    dividerText: {
+      color: colors.textSecondary,
+    },
+    registerButtonText: {
+      color: colors.primary,
+    },
+    termsText: {
+      color: colors.textSecondary,
+    },
+    decorativeCircle1: {
+      backgroundColor: `${colors.primary}20`,
+    },
+    decorativeCircle2: {
+      backgroundColor: `${colors.secondary}20`,
+    },
+    logoWrapper: {
+      shadowColor: colors.primary,
+    }
+  };
   const router = useRouter();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -75,7 +136,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <LinearGradient
-        colors={['#fef1e1', '#dfe8e6']}
+        colors={[colors.background, colors.cardDark]}
         style={styles.gradientBackground}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -87,9 +148,10 @@ export default function LoginScreen() {
         >
           {/* Decorative Circles */}
           <View style={styles.decorativeContainer}>
-            <Animated.View style={[styles.decorativeCircle1, { transform: [{ rotate: spin }] }]} />
-            <Animated.View style={[styles.decorativeCircle2, { transform: [{ rotate: spin }] }]} />
+            <Animated.View style={[styles.decorativeCircle1, { transform: [{ rotate: spin }], backgroundColor: `${colors.primary}20` }]} />
+            <Animated.View style={[styles.decorativeCircle2, { transform: [{ rotate: spin }], backgroundColor: `${colors.secondary}20` }]} />
           </View>
+
 
           {/* Header */}
           <Animated.View
@@ -104,32 +166,37 @@ export default function LoginScreen() {
               }
             ]}
           >
-            <View style={styles.logoWrapper}>
+            <View style={[styles.logoWrapper, themedStyles.logoWrapper]}>
               <LinearGradient
-                colors={['#fc350b', '#a0430a']}
+                colors={[colors.primary, colors.secondary]}
                 style={styles.logoGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Sparkles size={32} color="#fef1e1" />
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </LinearGradient>
             </View>
 
             <View style={styles.brandContainer}>
-              <Text style={styles.brandName}>TaskFlow</Text>
-              <View style={styles.brandBadge}>
-                <Text style={styles.brandBadgeText}>workspace</Text>
+              <Text style={[styles.brandName, { color: colors.text }]}>TaskFlow</Text>
+              <View style={[styles.brandBadge, themedStyles.brandBadge]}>
+                <Text style={[styles.brandBadgeText, themedStyles.brandBadgeText]}>workspace</Text>
               </View>
             </View>
 
-            <Text style={styles.welcomeTitle}>Welcome Back</Text>
-            <Text style={styles.welcomeSubtitle}>Sign in to continue your journey</Text>
+            <Text style={[styles.welcomeTitle, themedStyles.welcomeTitle]}>Welcome Back</Text>
+            <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>Sign in to continue your journey</Text>
           </Animated.View>
 
           {/* Form */}
           <Animated.View
             style={[
               styles.formCard,
+              themedStyles.formCard,
               {
                 opacity: fadeAnim,
                 transform: [
@@ -140,22 +207,22 @@ export default function LoginScreen() {
             ]}
           >
             <LinearGradient
-              colors={['#ffffff', '#fef1e1']}
-              style={styles.formGradient}
+              colors={[colors.cardLight, colors.cardDark]}
+              style={[styles.formGradient, themedStyles.formGradient]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
               {/* Email Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.inputLabel, themedStyles.inputLabel]}>Email Address</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
                   <View style={styles.inputIconContainer}>
-                    <Mail size={18} color="#fc350b" />
+                    <Mail size={18} color={colors.primary} />
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, themedStyles.input]}
                     placeholder="your@email.com"
-                    placeholderTextColor="#a0430a60"
+                    placeholderTextColor={colors.textSecondary + '60'}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -167,15 +234,15 @@ export default function LoginScreen() {
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Password</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.inputLabel, themedStyles.inputLabel]}>Password</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
                   <View style={styles.inputIconContainer}>
-                    <Lock size={18} color="#fc350b" />
+                    <Lock size={18} color={colors.primary} />
                   </View>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, themedStyles.input]}
                     placeholder="••••••••"
-                    placeholderTextColor="#a0430a60"
+                    placeholderTextColor={colors.textSecondary + '60'}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -187,9 +254,9 @@ export default function LoginScreen() {
                     activeOpacity={0.7}
                   >
                     {showPassword ? (
-                      <EyeOff size={18} color="#a0430a" />
+                      <EyeOff size={18} color={colors.textSecondary} />
                     ) : (
-                      <Eye size={18} color="#a0430a" />
+                      <Eye size={18} color={colors.textSecondary} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -200,7 +267,7 @@ export default function LoginScreen() {
                 style={styles.forgotPassword}
                 activeOpacity={0.7}
               >
-                <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                <Text style={[styles.forgotPasswordText, themedStyles.forgotPasswordText]}>Forgot password?</Text>
               </TouchableOpacity>
 
               {/* Login Button */}
@@ -215,23 +282,23 @@ export default function LoginScreen() {
                 }}
               >
                 <TouchableOpacity
-                  style={styles.loginButton}
+                  style={[styles.loginButton, themedStyles.loginButton]}
                   onPress={handleLogin}
                   disabled={loading}
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={loading ? ['#dfe8e6', '#c0cfcb'] : ['#fc350b', '#a0430a']}
+                    colors={loading ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
                     style={styles.loginButtonGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
                     {loading ? (
-                      <Text style={styles.loginButtonText}>Signing in...</Text>
+                      <ActivityIndicator color={colors.textLight} />
                     ) : (
                       <>
-                        <Text style={styles.loginButtonText}>Sign In</Text>
-                        <ChevronRight size={20} color="#fef1e1" />
+                        <Text style={[styles.loginButtonText, themedStyles.loginButtonText]}>Sign In</Text>
+                        <LogIn size={20} color={colors.textLight} />
                       </>
                     )}
                   </LinearGradient>
@@ -240,32 +307,204 @@ export default function LoginScreen() {
 
               {/* Divider */}
               <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
+                <View style={[styles.dividerLine, themedStyles.dividerLine]} />
+                <Text style={[styles.dividerText, themedStyles.dividerText]}>OR</Text>
+                <View style={[styles.dividerLine, themedStyles.dividerLine]} />
               </View>
 
               {/* Register Link */}
               <TouchableOpacity
-                style={styles.registerButton}
-                onPress={() => router.push('/(auth)/register')}
+                style={[styles.registerButton, { borderColor: colors.primary }]}
+                onPress={() => router.push('/register')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.registerButtonText}>Create New Account</Text>
+                <Text style={[styles.registerButtonText, themedStyles.registerButtonText]}>Create New Account</Text>
               </TouchableOpacity>
 
               {/* Terms */}
               <View style={styles.termsContainer}>
-                <Text style={styles.termsText}>
+                <Text style={[styles.termsText, themedStyles.termsText]}>
                   By signing in, you agree to our{' '}
-                  <Text style={styles.termsLink}>Terms</Text> &{' '}
-                  <Text style={styles.termsLink}>Privacy Policy</Text>
+                  <TouchableOpacity onPress={() => setPrivacyModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Text style={[styles.termsLink, { color: colors.primary }]}>Terms</Text>
+                  </TouchableOpacity> &{' '}
+                  <TouchableOpacity onPress={() => setPrivacyModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Text style={[styles.termsLink, { color: colors.primary }]}>Privacy Policy</Text>
+                  </TouchableOpacity>
                 </Text>
               </View>
             </LinearGradient>
           </Animated.View>
         </Animated.ScrollView>
       </LinearGradient>
+
+      {/* Privacy Policy Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={privacyModalVisible}
+        onRequestClose={() => setPrivacyModalVisible(false)}
+      >
+        <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
+          <View style={[styles.privacyModalContent, { backgroundColor: colors.modalBackground, shadowColor: colors.shadow }]}>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              style={styles.privacyModalHeader}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.privacyHeaderContent}>
+                <Shield size={24} color={colors.textLight} />
+                <Text style={[styles.privacyModalTitle, { color: colors.textLight }]}>Privacy & Security</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.privacyCloseButton, { backgroundColor: `${colors.textLight}20` }]}
+                onPress={() => setPrivacyModalVisible(false)}
+              >
+                <X size={20} color={colors.textLight} />
+              </TouchableOpacity>
+            </LinearGradient>
+
+            <ScrollView
+              style={styles.privacyScrollView}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.privacyContent}
+            >
+              <Text style={[styles.privacySectionTitle, { color: colors.text }]}>Taskflow – Privacy Policy</Text>
+              <Text style={[styles.privacyEffectiveDate, { color: colors.textSecondary }]}>Effective Date: February 15, 2026</Text>
+
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                Welcome to Taskflow, a task management application designed to help users organize work efficiently.
+                Your privacy and data protection are important to us. This policy explains how we collect, use, store,
+                and protect your information when you use Taskflow.
+              </Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>1. Information We Collect</Text>
+
+              <Text style={[styles.privacySubSubtitle, { color: colors.primary }]}>a) Personal Information</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Name and profile details</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Email address or login credentials</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Account preferences</Text>
+
+              <Text style={[styles.privacySubSubtitle, { color: colors.primary }]}>b) Task Data</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Tasks, notes, messages, schedules, and attachments created inside Taskflow</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Team collaboration content (if workspace features are enabled)</Text>
+
+              <Text style={[styles.privacySubSubtitle, { color: colors.primary }]}>c) Technical Information</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Device type, OS version, browser/app version</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• IP address and log data for security monitoring</Text>
+
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                We collect only the information required to operate the application.
+              </Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>2. How We Use Your Information</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                Your data is used to:
+              </Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Provide task management features</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Sync tasks across devices</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Enable collaboration between users</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Improve performance and user experience</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Detect fraud, abuse, or unauthorized access</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                Taskflow does not sell personal data to third parties.
+              </Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>3. Data Storage and Retention</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Data is stored securely on cloud infrastructure.</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Information remains stored while your account is active.</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Users can request deletion of their account and data at any time.</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>4. Data Sharing</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                We may share limited information only when:
+              </Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Required by law or legal request</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Needed for secure infrastructure providers (database, hosting, email services)</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Necessary to prevent security threats</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                Third-party services used by Taskflow follow their own privacy standards.
+              </Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>5. User Rights</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                You have the right to:
+              </Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Access your personal data</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Update or correct information</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Request account deletion</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Control notification and privacy settings</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Contact us at: cxndy.mee@example.com</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>6. Children's Privacy</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                Taskflow is not intended for users under 13 years old. We do not knowingly collect data from children.
+              </Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>7. Changes to Policy</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                We may update this policy when features or legal requirements change. Users will be notified through
+                the app or email when significant updates occur.
+              </Text>
+
+              <Text style={[styles.privacySectionTitle, { color: colors.text }]}>Taskflow – Security Statement</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                Taskflow is built with security as a core priority. We use modern practices to keep user data protected.
+              </Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>1. Data Encryption</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• HTTPS encryption for all network communication</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Secure token-based authentication</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Passwords stored using strong hashing methods</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>2. Account Protection</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Secure login sessions</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Optional email verification</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Protection against brute-force attacks</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>3. Infrastructure Security</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Cloud-hosted backend with firewall protection</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Database access restricted through environment variables</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Regular monitoring of logs and suspicious activities</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>4. Access Control</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Role-based permissions for teams or organizations</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Users can only access their own tasks unless shared</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>5. Backup & Recovery</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Periodic database backups</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>• Disaster recovery procedures to prevent data loss</Text>
+
+              <Text style={[styles.privacySectionSubtitle, { color: colors.text }]}>8. Contact Information</Text>
+              <Text style={[styles.privacyParagraph, { color: colors.textSecondary }]}>
+                If you have questions regarding privacy or security:
+              </Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>App Name: Taskflow</Text>
+              <Text style={[styles.privacyBullet, { color: colors.textSecondary }]}>Email: cxndy.mee@example.com</Text>
+
+              {/* Add some bottom padding */}
+              <View style={{ height: 20 }} />
+            </ScrollView>
+
+            <View style={[styles.privacyModalFooter, { borderTopColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.privacyAcceptButton, { shadowColor: colors.primary }]}
+                onPress={() => setPrivacyModalVisible(false)}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  style={styles.privacyAcceptGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={[styles.privacyAcceptText, { color: colors.textLight }]}>Close</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </BlurView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -315,7 +554,6 @@ const styles = StyleSheet.create({
   },
   logoWrapper: {
     marginBottom: 20,
-    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -327,6 +565,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
   },
   brandContainer: {
     flexDirection: 'row',
@@ -337,34 +580,28 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#a0430a',
     fontFamily: 'Inter_800ExtraBold',
   },
   brandBadge: {
-    backgroundColor: '#fc350b15',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   brandBadgeText: {
     fontSize: 10,
-    color: '#fc350b',
     fontFamily: 'Inter_600SemiBold',
     textTransform: 'uppercase',
   },
   welcomeTitle: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#a0430a',
     fontFamily: 'Inter_700Bold',
     marginBottom: 8,
     textAlign: 'center',
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: '#fc350b',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 24,
@@ -373,7 +610,6 @@ const styles = StyleSheet.create({
   formCard: {
     borderRadius: 32,
     overflow: 'hidden',
-    shadowColor: '#a0430a',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.2,
     shadowRadius: 24,
@@ -382,24 +618,20 @@ const styles = StyleSheet.create({
   formGradient: {
     padding: 24,
     borderWidth: 1,
-    borderColor: '#fc350b20',
   },
   inputContainer: {
     marginBottom: 20,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef1e1',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#fc350b30',
     paddingHorizontal: 12,
   },
   inputIconContainer: {
@@ -413,7 +645,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
   },
   passwordInput: {
@@ -434,14 +665,12 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#fc350b',
     fontFamily: 'Inter_500Medium',
   },
   loginButton: {
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 24,
-    shadowColor: '#fc350b',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -455,7 +684,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loginButtonText: {
-    color: '#fef1e1',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
@@ -468,42 +696,152 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#fc350b30',
   },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#a0430a',
     fontFamily: 'Inter_500Medium',
   },
   registerButton: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#fef1e1',
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#fc350b30',
   },
   registerButtonText: {
-    color: '#fc350b',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
   },
   termsContainer: {
     paddingHorizontal: 8,
+    marginTop: 10,
   },
   termsText: {
     fontSize: 12,
-    color: '#a0430a',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 18,
     opacity: 0.8,
   },
   termsLink: {
-    color: '#fc350b',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  themeToggle: {
+    position: 'absolute',
+    top: 60,
+    right: 0,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  privacyModalContent: {
+    width: '95%',
+    maxWidth: 500,
+    maxHeight: '85%',
+    borderRadius: 32,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  privacyModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+  },
+  privacyHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  privacyModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
+  },
+  privacyCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  privacyScrollView: {
+    flex: 1,
+  },
+  privacyContent: {
+    padding: 24,
+  },
+  privacySectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 8,
+  },
+  privacyEffectiveDate: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 24,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  privacySectionSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  privacySubSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  privacyParagraph: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 22,
+    marginBottom: 16,
+    opacity: 0.8,
+  },
+  privacyBullet: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 22,
+    marginLeft: 12,
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  privacyModalFooter: {
+    padding: 24,
+    borderTopWidth: 1,
+  },
+  privacyAcceptButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  privacyAcceptGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  privacyAcceptText: {
+    fontSize: 16,
+    fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
   },
 });

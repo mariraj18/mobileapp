@@ -45,6 +45,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Attachment {
   id: string;
@@ -56,6 +57,7 @@ interface Attachment {
 }
 
 export default function TaskDetailsScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [task, setTask] = useState<Task | null>(null);
@@ -168,6 +170,37 @@ export default function TaskDetailsScreen() {
     } else {
       Alert.alert('Error', response.message || 'Failed to update due date');
     }
+  };
+
+  const handleDeleteTask = async () => {
+    Alert.alert('DEBUG', 'handleDeleteTask entered');
+    Alert.alert(
+      'Delete Task',
+      'Are you sure you want to delete this task? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            Alert.alert('DEBUG', 'Starting API call to delete task');
+            console.log(`[TaskDetails] Deleting task ${id}`);
+            const response = await taskApi.delete(id!);
+            console.log(`[TaskDetails] Delete response:`, response);
+            Alert.alert('DEBUG', `API Result: success=${response.success}`);
+            if (response.success) {
+              if (task?.project_id) {
+                router.replace(`/project/${task.project_id}`);
+              } else {
+                router.replace('/(tabs)');
+              }
+            } else {
+              Alert.alert('Error', response.message || 'Failed to delete task');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSaveDetails = async () => {
@@ -453,7 +486,7 @@ export default function TaskDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Task Header */}
-        <View style={styles.taskHeader}>
+        <View style={[styles.taskHeader, { paddingTop: insets.top + (Platform.OS === 'ios' ? 60 : 80) }]}>
           <LinearGradient
             colors={[colors.cardLight, colors.cardDark]}
             style={[styles.taskHeaderGradient, { borderColor: colors.border, shadowColor: colors.shadow }]}
@@ -476,14 +509,24 @@ export default function TaskDetailsScreen() {
                 </View>
               </View>
 
-              {!task.project?.is_completed && (
-                <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: colors.primary + '15' }]}
-                  onPress={() => setEditMode(!editMode)}
-                >
-                  <Edit2 size={18} color={colors.primary} />
-                </TouchableOpacity>
-              )}
+              <View style={styles.headerActions}>
+                {(task.created_by === user?.id || task.project?.created_by === user?.id) && (
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: colors.secondary + '15' }]}
+                    onPress={handleDeleteTask}
+                  >
+                    <Trash2 size={18} color={colors.secondary} />
+                  </TouchableOpacity>
+                )}
+                {!task.project?.is_completed && (
+                  <TouchableOpacity
+                    style={[styles.editButton, { backgroundColor: colors.primary + '15' }]}
+                    onPress={() => setEditMode(!editMode)}
+                  >
+                    <Edit2 size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             {editMode ? (
@@ -801,6 +844,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -841,6 +888,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButton: {
     width: 36,
     height: 36,
     borderRadius: 18,

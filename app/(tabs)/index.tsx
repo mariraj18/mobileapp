@@ -17,17 +17,8 @@ export default function WorkspacesScreen() {
   const [loading, setLoading] = useState(true);
   const [choiceModalVisible, setChoiceModalVisible] = useState(false);
   const [workspaceModalVisible, setWorkspaceModalVisible] = useState(false);
-  const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
-  const [newTask, setNewTask] = useState<CreateStandaloneTaskData>({
-    title: '',
-    description: '',
-    status: 'TODO',
-    priority: 'MEDIUM',
-    due_date: undefined,
-  });
   const [creating, setCreating] = useState(false);
-  const [creatingTask, setCreatingTask] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -109,33 +100,7 @@ export default function WorkspacesScreen() {
     }
   };
 
-  const handleCreateTask = async () => {
-    if (!newTask.title.trim()) {
-      Alert.alert('Error', 'Please enter a task title');
-      return;
-    }
 
-    setCreatingTask(true);
-    const response = await taskApi.createStandalone(newTask);
-    setCreatingTask(false);
-
-    if (response.success) {
-      setNewTask({
-        title: '',
-        description: '',
-        status: 'TODO',
-        priority: 'MEDIUM',
-        due_date: undefined,
-      });
-      setTaskModalVisible(false);
-      setChoiceModalVisible(false);
-      Alert.alert('Success', 'Task created successfully!', [
-        { text: 'OK', onPress: () => router.push('/tasks') }
-      ]);
-    } else {
-      Alert.alert('Error', response.message || 'Failed to create task');
-    }
-  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -241,22 +206,21 @@ export default function WorkspacesScreen() {
               </View>
               <View style={styles.taskCountContainer}>
                 <CheckSquare size={12} color={colors.primary} />
-                <Text style={[styles.taskCountText, { color: colors.textSecondary }]}>12 tasks</Text>
+                <Text style={[styles.taskCountText, { color: colors.textSecondary }]}>
+                  {item.taskCount || 0} {item.taskCount === 1 ? 'task' : 'tasks'}
+                </Text>
               </View>
             </View>
           </View>
 
           <View style={styles.cardFooter}>
             <View style={styles.memberAvatars}>
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                <Text style={styles.avatarText}>JD</Text>
+              <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
+                <Users size={14} color={colors.primary} />
               </View>
-              <View style={[styles.avatar, styles.avatarOverlap, { backgroundColor: colors.secondary }]}>
-                <Text style={styles.avatarText}>MK</Text>
-              </View>
-              <View style={[styles.avatar, styles.avatarOverlap, { backgroundColor: colors.tertiary }]}>
-                <Text style={styles.avatarText}>+3</Text>
-              </View>
+              <Text style={[styles.memberCountText, { color: colors.textSecondary }]}>
+                {item.memberCount || 0} {item.memberCount === 1 ? 'member' : 'members'}
+              </Text>
             </View>
             <View style={[styles.arrowContainer, { backgroundColor: colors.badgeBackground }]}>
               <ChevronRight size={18} color={colors.primary} />
@@ -333,8 +297,8 @@ export default function WorkspacesScreen() {
               >
                 <View style={[styles.profileImageContainer, { backgroundColor: colors.cardDark }]}>
                   {user?.profile_image && !imageError ? (
-                    <Image 
-                      source={{ uri: user.profile_image }} 
+                    <Image
+                      source={{ uri: user.profile_image }}
                       style={styles.profileImage}
                       key={user.profile_image}
                       onError={handleImageError}
@@ -522,7 +486,7 @@ export default function WorkspacesScreen() {
                   style={[styles.choiceCard, { borderColor: colors.border }]}
                   onPress={() => {
                     setChoiceModalVisible(false);
-                    setTaskModalVisible(true);
+                    router.push('/task/create');
                   }}
                   activeOpacity={0.7}
                 >
@@ -636,175 +600,8 @@ export default function WorkspacesScreen() {
             </Animated.View>
           </BlurView>
         </Modal>
-
-        {/* Task Modal */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={taskModalVisible}
-          onRequestClose={() => setTaskModalVisible(false)}
-        >
-          <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
-            <ScrollView
-              contentContainerStyle={styles.scrollModalContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <Animated.View
-                style={[
-                  styles.modalContent,
-                  {
-                    backgroundColor: colors.modalBackground,
-                    shadowColor: colors.shadow,
-                    transform: [{
-                      scale: fadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.9, 1]
-                      })
-                    }]
-                  }
-                ]}
-              >
-                <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Create Quick Task</Text>
-                  <TouchableOpacity
-                    style={[styles.closeButton, { backgroundColor: colors.badgeBackground }]}
-                    onPress={() => setTaskModalVisible(false)}
-                  >
-                    <X size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={[styles.label, { color: colors.text }]}>Title *</Text>
-                  <View style={[styles.inputWrapper, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
-                    <CheckSquare size={18} color={colors.primary} style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, { color: colors.text }]}
-                      value={newTask.title}
-                      onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-                      placeholder="What needs to be done?"
-                      placeholderTextColor={colors.textSecondary + '60'}
-                      autoFocus
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={[styles.label, { color: colors.text }]}>Description</Text>
-                  <View style={[styles.inputWrapper, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
-                    <TextInput
-                      style={[styles.input, styles.textArea, { color: colors.text }]}
-                      value={newTask.description}
-                      onChangeText={(text) => setNewTask({ ...newTask, description: text })}
-                      placeholder="Add details..."
-                      placeholderTextColor={colors.textSecondary + '60'}
-                      multiline
-                      numberOfLines={3}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.row}>
-                  <View style={[styles.inputContainer, styles.halfWidth]}>
-                    <Text style={[styles.label, { color: colors.text }]}>Priority</Text>
-                    <View style={styles.pickerContainer}>
-                      <TouchableOpacity
-                        style={[styles.pickerButton, { backgroundColor: colors.cardDark, borderColor: colors.border },
-                          newTask.priority === 'LOW' && { backgroundColor: colors.tertiary, borderColor: colors.tertiary }]}
-                        onPress={() => setNewTask({ ...newTask, priority: 'LOW' })}
-                      >
-                        <Text style={[styles.pickerText, { color: colors.textSecondary },
-                          newTask.priority === 'LOW' && styles.pickerTextActive]}>Low</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.pickerButton, { backgroundColor: colors.cardDark, borderColor: colors.border },
-                          newTask.priority === 'MEDIUM' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                        onPress={() => setNewTask({ ...newTask, priority: 'MEDIUM' })}
-                      >
-                        <Text style={[styles.pickerText, { color: colors.textSecondary },
-                          newTask.priority === 'MEDIUM' && styles.pickerTextActive]}>Med</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.pickerButton, { backgroundColor: colors.cardDark, borderColor: colors.border },
-                          newTask.priority === 'HIGH' && { backgroundColor: colors.secondary, borderColor: colors.secondary }]}
-                        onPress={() => setNewTask({ ...newTask, priority: 'HIGH' })}
-                      >
-                        <Text style={[styles.pickerText, { color: colors.textSecondary },
-                          newTask.priority === 'HIGH' && styles.pickerTextActive]}>High</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View style={[styles.inputContainer, styles.halfWidth]}>
-                    <Text style={[styles.label, { color: colors.text }]}>Status</Text>
-                    <View style={styles.pickerContainer}>
-                      <TouchableOpacity
-                        style={[styles.pickerButton, { backgroundColor: colors.cardDark, borderColor: colors.border },
-                          newTask.status === 'TODO' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                        onPress={() => setNewTask({ ...newTask, status: 'TODO' })}
-                      >
-                        <Text style={[styles.pickerText, { color: colors.textSecondary },
-                          newTask.status === 'TODO' && styles.pickerTextActive]}>To Do</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.pickerButton, { backgroundColor: colors.cardDark, borderColor: colors.border },
-                          newTask.status === 'IN_PROGRESS' && { backgroundColor: colors.secondary, borderColor: colors.secondary }]}
-                        onPress={() => setNewTask({ ...newTask, status: 'IN_PROGRESS' })}
-                      >
-                        <Text style={[styles.pickerText, { color: colors.textSecondary },
-                          newTask.status === 'IN_PROGRESS' && styles.pickerTextActive]}>Doing</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.pickerButton, { backgroundColor: colors.cardDark, borderColor: colors.border },
-                          newTask.status === 'DONE' && { backgroundColor: colors.tertiary, borderColor: colors.tertiary }]}
-                        onPress={() => setNewTask({ ...newTask, status: 'DONE' })}
-                      >
-                        <Text style={[styles.pickerText, { color: colors.textSecondary },
-                          newTask.status === 'DONE' && styles.pickerTextActive]}>Done</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={[styles.label, { color: colors.text }]}>Due Date</Text>
-                  <View style={[styles.inputWrapper, { backgroundColor: colors.cardDark, borderColor: colors.border }]}>
-                    <Calendar size={18} color={colors.primary} style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, { color: colors.text }]}
-                      value={newTask.due_date || ''}
-                      onChangeText={(text) => setNewTask({ ...newTask, due_date: text || undefined })}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor={colors.textSecondary + '60'}
-                    />
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.createButton, { shadowColor: colors.primary }]}
-                  onPress={handleCreateTask}
-                  disabled={creatingTask}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={creatingTask ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
-                    style={styles.createButtonGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    {creatingTask ? (
-                      <ActivityIndicator color={colors.textLight} />
-                    ) : (
-                      <Text style={[styles.createButtonText, { color: colors.textLight }]}>Create Task</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            </ScrollView>
-          </BlurView>
-        </Modal>
       </LinearGradient>
-    </View>
+    </View >
   );
 }
 
@@ -1113,15 +910,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#fef1e1',
+    marginRight: 8,
   },
-  avatarOverlap: {
-    marginLeft: -8,
-  },
-  avatarText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#fef1e1',
-    fontFamily: 'Inter_600SemiBold',
+  memberCountText: {
+    fontSize: 13,
+    fontFamily: 'Inter_500Medium',
   },
   arrowContainer: {
     width: 32,

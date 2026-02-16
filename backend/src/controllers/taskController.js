@@ -1,5 +1,5 @@
 const { Task, Project, User, TaskAssignment, TaskComment, TaskAttachment, Notification, ProjectMember, WorkspaceMember } = require('../models');
-const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES } = require('../../config/constants');
+const { HTTP_STATUS, ERROR_MESSAGES, NOTIFICATION_TYPES, ROLES } = require('../../config/constants');
 const { getPaginationParams, buildPaginatedResponse } = require('../utils/helpers');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
@@ -33,17 +33,26 @@ const createTask = async (req, res, next) => {
       });
     }
 
-    // Check if user is project member
+    // Check if user is project member or workspace owner/admin
     const isProjectMember = await ProjectMember.findOne({
       where: { project_id: projectId, user_id: userId },
       transaction,
     });
 
-    if (!isProjectMember) {
+    const workspaceMembership = await WorkspaceMember.findOne({
+      where: {
+        user_id: userId,
+        workspace_id: project.workspace_id,
+        role: [ROLES.OWNER, ROLES.ADMIN],
+      },
+      transaction,
+    });
+
+    if (!isProjectMember && !workspaceMembership && project.created_by !== userId) {
       await transaction.rollback();
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        message: 'You are not a member of this project',
+        message: 'You do not have permission to create tasks in this project',
       });
     }
 
@@ -125,19 +134,34 @@ const getTasks = async (req, res, next) => {
     const { page, limit, offset } = getPaginationParams(req.validatedQuery);
     const { status, priority, assignedTo, search, sortBy, sortOrder } = req.validatedQuery;
 
-    // Check if user is project member
+    const project = await Project.findByPk(projectId);
+    if (!project) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.PROJECT_NOT_FOUND,
+      });
+    }
+
+    // Check if user is project member or workspace owner/admin
     const isProjectMember = await ProjectMember.findOne({
       where: { project_id: projectId, user_id: userId },
     });
 
-    if (!isProjectMember) {
+    const workspaceMembership = await WorkspaceMember.findOne({
+      where: {
+        user_id: userId,
+        workspace_id: project.workspace_id,
+        role: [ROLES.OWNER, ROLES.ADMIN],
+      },
+    });
+
+    if (!isProjectMember && !workspaceMembership && project.created_by !== userId) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        message: 'You are not a member of this project',
+        message: 'You do not have permission to access tasks in this project',
       });
     }
 
-    const project = await Project.findByPk(projectId);
     if (project.is_completed) {
       return res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -245,10 +269,18 @@ const getTaskById = async (req, res, next) => {
         where: { project_id: task.project_id, user_id: userId },
       });
 
-      if (!isProjectMember) {
+      const workspaceMembership = await WorkspaceMember.findOne({
+        where: {
+          user_id: userId,
+          workspace_id: task.project.workspace_id,
+          role: [ROLES.OWNER, ROLES.ADMIN],
+        },
+      });
+
+      if (!isProjectMember && !workspaceMembership && task.created_by !== userId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          message: 'You are not a member of this project',
+          message: 'You do not have permission to access this task',
         });
       }
     } else {
@@ -319,7 +351,15 @@ const updateTask = async (req, res, next) => {
         where: { project_id: task.project_id, user_id: userId },
       });
 
-      if (!isProjectMember && task.created_by !== userId) {
+      const workspaceMembership = await WorkspaceMember.findOne({
+        where: {
+          user_id: userId,
+          workspace_id: task.project.workspace_id,
+          role: [ROLES.OWNER, ROLES.ADMIN],
+        },
+      });
+
+      if (!isProjectMember && !workspaceMembership && task.created_by !== userId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to update this task',
@@ -420,7 +460,10 @@ const deleteTask = async (req, res, next) => {
         },
       });
 
-      if (!workspaceMembership && task.created_by !== userId) {
+      // Role check: Admin/Owner, Task Creator, or Project Creator
+      const isProjectCreator = task.project.created_by === userId;
+
+      if (!workspaceMembership && task.created_by !== userId && !isProjectCreator) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           message: 'You do not have permission to delete this task',
@@ -492,11 +535,20 @@ const assignUsers = async (req, res, next) => {
         transaction,
       });
 
-      if (!isProjectMember) {
+      const workspaceMembership = await WorkspaceMember.findOne({
+        where: {
+          user_id: currentUserId,
+          workspace_id: task.project.workspace_id,
+          role: [ROLES.OWNER, ROLES.ADMIN],
+        },
+        transaction,
+      });
+
+      if (!isProjectMember && !workspaceMembership && task.created_by !== currentUserId) {
         await transaction.rollback();
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          message: 'You are not a member of this project',
+          message: 'You do not have permission to assign users in this project',
         });
       }
     } else {
@@ -598,10 +650,18 @@ const unassignUsers = async (req, res, next) => {
         where: { project_id: task.project_id, user_id: currentUserId },
       });
 
-      if (!isProjectMember) {
+      const workspaceMembership = await WorkspaceMember.findOne({
+        where: {
+          user_id: currentUserId,
+          workspace_id: task.project.workspace_id,
+          role: [ROLES.OWNER, ROLES.ADMIN],
+        },
+      });
+
+      if (!isProjectMember && !workspaceMembership && task.created_by !== currentUserId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          message: 'You are not a member of this project',
+          message: 'You do not have permission to unassign users in this project',
         });
       }
     } else {

@@ -92,12 +92,12 @@ export default function WorkspaceMembersScreen() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
-      Alert.alert('Error', 'Please enter a user ID (Email lookup not implemented yet)');
+      Alert.alert('Error', 'Please enter a User Code');
       return;
     }
 
     setInviting(true);
-    const response = await memberApi.addMember(id!, inviteEmail, 'MEMBER');
+    const response = await memberApi.addMemberByCode(id!, inviteEmail, 'MEMBER');
     setInviting(false);
 
     if (response.success) {
@@ -357,15 +357,11 @@ export default function WorkspaceMembersScreen() {
                   style={[styles.input, { color: colors.text }]}
                   value={inviteEmail}
                   onChangeText={setInviteEmail}
-                  placeholder="Enter User ID"
+                  placeholder="Enter User Code"
                   placeholderTextColor={colors.textSecondary + '60'}
                   autoCapitalize="none"
                 />
               </View>
-
-              <Text style={[styles.hint, { color: colors.primary }]}>
-                In production, this would be an email lookup.
-              </Text>
 
               <TouchableOpacity
                 style={[styles.createButton, { shadowColor: colors.primary }]}

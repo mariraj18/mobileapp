@@ -9,7 +9,9 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +30,7 @@ import {
 } from 'lucide-react-native';
 
 export default function CreateTaskScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, theme } = useTheme();
   const router = useRouter();
   const { projectId } = useLocalSearchParams();
@@ -147,6 +150,7 @@ export default function CreateTaskScreen() {
           {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
+            paddingTop: insets.top + (Platform.OS === 'ios' ? 60 : 80), // Add padding for the header
           },
         ]}
         showsVerticalScrollIndicator={false}

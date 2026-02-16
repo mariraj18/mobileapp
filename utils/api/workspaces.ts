@@ -10,6 +10,7 @@ export interface Workspace {
   joined_at?: string;
   memberCount?: number;
   projectCount?: number;
+  taskCount?: number;
   creator?: {
     id: string;
     user_id: string;

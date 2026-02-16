@@ -47,16 +47,21 @@ const createProject = async (req, res, next) => {
       created_by: userId,
     }, { transaction });
 
-    // Add creator as project member
-    await ProjectMember.create({
-      project_id: project.id,
-      user_id: userId,
-      added_by: userId,
-    }, { transaction });
+    // Add creator as project member if selected or if no members specified
+    const isCreatorSelected = memberIds && memberIds.includes(userId);
+    const shouldAddCreator = !memberIds || memberIds.length === 0 || isCreatorSelected;
+
+    if (shouldAddCreator) {
+      await ProjectMember.create({
+        project_id: project.id,
+        user_id: userId,
+        added_by: userId,
+      }, { transaction });
+    }
 
     // Add other members if specified
     if (memberIds && memberIds.length > 0) {
-      // Filter out the creator if they were included in the selection
+      // Filter out the creator as they were handled above
       const otherMemberIds = memberIds.filter(id => id !== userId);
 
       const projectMembers = otherMemberIds.map(memberId => ({
@@ -167,15 +172,22 @@ const getProjects = async (req, res, next) => {
           where: { project_id: project.id, status: 'DONE' },
         });
 
+        const memberCount = await ProjectMember.count({
+          where: { project_id: project.id },
+        });
+
         const isMember = await ProjectMember.findOne({
           where: { project_id: project.id, user_id: userId },
         });
+
+        const isOwnerOrAdmin = [ROLES.OWNER, ROLES.ADMIN].includes(workspaceMembership.role);
 
         return {
           ...project.toJSON(),
           taskCount,
           completedTaskCount,
-          isMember: !!isMember,
+          memberCount,
+          isMember: !!isMember || isOwnerOrAdmin || project.created_by === userId,
         };
       })
     );
@@ -231,15 +243,22 @@ const getProjectById = async (req, res, next) => {
       });
     }
 
-    // Check if user is project member
+    // Check if user is project member or has workspace-level access
     const isMember = await ProjectMember.findOne({
       where: { project_id: id, user_id: userId },
     });
 
-    if (!isMember) {
+    const workspaceMembership = await WorkspaceMember.findOne({
+      where: { user_id: userId, workspace_id: project.workspace_id },
+    });
+
+    const isOwnerOrAdmin = workspaceMembership && [ROLES.OWNER, ROLES.ADMIN].includes(workspaceMembership.role);
+    const isCreator = project.created_by === userId;
+
+    if (!isMember && !isOwnerOrAdmin && !isCreator) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        message: 'You are not a member of this project',
+        message: 'You were not added to this project',
       });
     }
 
@@ -469,19 +488,11 @@ const deleteProject = async (req, res, next) => {
       });
     }
 
-    // Check if user is workspace owner/admin
-    const workspaceMembership = await WorkspaceMember.findOne({
-      where: {
-        user_id: userId,
-        workspace_id: project.workspace_id,
-        role: [ROLES.OWNER, ROLES.ADMIN],
-      },
-    });
-
-    if (!workspaceMembership) {
+    // Check if user is project creator
+    if (project.created_by !== userId) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        message: ERROR_MESSAGES.FORBIDDEN,
+        message: 'Only the project creator can delete this project',
       });
     }
 
@@ -616,19 +627,11 @@ const removeProjectMember = async (req, res, next) => {
       });
     }
 
-    // Check if current user is workspace owner/admin
-    const workspaceMembership = await WorkspaceMember.findOne({
-      where: {
-        user_id: currentUserId,
-        workspace_id: project.workspace_id,
-        role: [ROLES.OWNER, ROLES.ADMIN],
-      },
-    });
-
-    if (!workspaceMembership) {
+    // Check if current user is project creator
+    if (project.created_by !== currentUserId) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
-        message: 'Only workspace owners/admins can remove members from projects',
+        message: 'Only the project creator can remove members from this project',
       });
     }
 

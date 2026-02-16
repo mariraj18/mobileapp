@@ -1,30 +1,34 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, Animated, Platform, ScrollView } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
-import { projectApi, Project } from '@/utils/api/projects';
+import { useAuth } from '@/contexts/AuthContext';
+import { projectApi, Project, ProjectMember } from '@/utils/api/projects';
 import { taskApi, Task, CreateTaskData } from '@/utils/api/tasks';
-import { Plus, X, Calendar, CheckCircle, Clock, AlertCircle, Target, TrendingUp, Users, Filter, ChevronRight } from 'lucide-react-native';
+import { workspaceApi, WorkspaceMember } from '@/utils/api/workspaces';
+import { Plus, X, Calendar, CheckCircle, Clock, AlertCircle, Target, TrendingUp, Users, Filter, ChevronRight, UserPlus, Trash2, Check, ArrowRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProjectDetailsScreen() {
+    const insets = useSafeAreaInsets();
     const { colors, theme } = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { user } = useAuth();
 
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
-    const [modalVisible, setModalVisible] = useState(false);
     const [filterModalVisible, setFilterModalVisible] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'TODO' | 'IN_PROGRESS' | 'DONE'>('ALL');
-
-    const [newTaskTitle, setNewTaskTitle] = useState('');
-    const [newTaskDesc, setNewTaskDesc] = useState('');
-    const [newTaskPriority, setNewTaskPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
-    const [creating, setCreating] = useState(false);
+    const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+    const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([]);
+    const [memberModalVisible, setMemberModalVisible] = useState(false);
+    const [addingMember, setAddingMember] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
@@ -57,48 +61,86 @@ export default function ProjectDetailsScreen() {
 
     const loadData = async () => {
         setLoading(true);
-        const [projResponse, tasksResponse] = await Promise.all([
+        const [projResponse, tasksResponse, projMembersResponse] = await Promise.all([
             projectApi.getById(id!),
-            taskApi.getAll(id!)
+            taskApi.getAll(id!),
+            projectApi.getMembers(id!)
         ]);
 
         if (projResponse.success) {
             setProject(projResponse.data);
+            // Fetch workspace members to allow adding them
+            const wsMembersResponse = await workspaceApi.getMembers(projResponse.data.workspace_id);
+            if (wsMembersResponse.success) {
+                setWorkspaceMembers(wsMembersResponse.data);
+            }
+        } else {
+            setError(projResponse.message || 'Project not found');
         }
 
         if (tasksResponse.success) {
             setTasks(tasksResponse.data);
         }
 
+        if (projMembersResponse.success) {
+            setProjectMembers(projMembersResponse.data);
+        }
+
         setLoading(false);
     };
 
-    const handleCreateTask = async () => {
-        if (!newTaskTitle.trim()) {
-            Alert.alert('Error', 'Please enter a task title');
-            return;
-        }
-
-        setCreating(true);
-        const taskData: CreateTaskData = {
-            title: newTaskTitle,
-            description: newTaskDesc,
-            priority: newTaskPriority,
-            status: 'TODO'
-        };
-
-        const response = await taskApi.create(id!, taskData);
-        setCreating(false);
+    const handleAddMember = async (userId: string) => {
+        setAddingMember(true);
+        const response = await projectApi.addMember(id!, userId);
+        setAddingMember(false);
 
         if (response.success) {
-            setNewTaskTitle('');
-            setNewTaskDesc('');
-            setNewTaskPriority('MEDIUM');
-            setModalVisible(false);
             loadData();
+            Alert.alert('Success', 'Member added to project');
         } else {
-            Alert.alert('Error', response.message || 'Failed to create task');
+            Alert.alert('Error', response.message || 'Failed to add member');
         }
+    };
+
+    const handleDeleteProject = async () => {
+        Alert.alert('DEBUG', 'handleDeleteProject entered');
+        Alert.alert('Delete Project', 'Are you sure you want to delete this project? This action cannot be undone.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    Alert.alert('DEBUG', 'Starting API call to delete project');
+                    const response = await projectApi.delete(id!);
+                    Alert.alert('DEBUG', `API Result: success=${response.success}`);
+                    if (response.success && project) {
+                        router.replace(`/workspace/${project.workspace_id}`);
+                    } else if (response.success) {
+                        router.replace('/(tabs)');
+                    } else {
+                        Alert.alert('Error', response.message || 'Failed to delete project');
+                    }
+                }
+            }
+        ]);
+    };
+
+    const handleRemoveMember = async (userId: string) => {
+        Alert.alert('Remove Member', 'Are you sure you want to remove this member from the project?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Remove',
+                style: 'destructive',
+                onPress: async () => {
+                    const response = await projectApi.removeMember(id!, userId);
+                    if (response.success) {
+                        loadData();
+                    } else {
+                        Alert.alert('Error', response.message || 'Failed to remove member');
+                    }
+                }
+            }
+        ]);
     };
 
     const getStatusColor = (status: string) => {
@@ -219,8 +261,17 @@ export default function ProjectDetailsScreen() {
 
     if (!project) {
         return (
-            <View style={styles.centered}>
-                <Text>Project not found</Text>
+            <View style={[styles.centered, { backgroundColor: colors.background, padding: 20 }]}>
+                <AlertCircle size={48} color={colors.secondary} style={{ marginBottom: 16 }} />
+                <Text style={[styles.errorText, { color: colors.text }]}>
+                    {error || 'Project not found'}
+                </Text>
+                <TouchableOpacity
+                    style={[styles.backButton, { backgroundColor: colors.primary + '15', marginTop: 24 }]}
+                    onPress={() => router.back()}
+                >
+                    <Text style={{ color: colors.primary, fontWeight: '600' }}>Go Back</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -255,7 +306,8 @@ export default function ProjectDetailsScreen() {
                     styles.header,
                     {
                         opacity: fadeAnim,
-                        transform: [{ translateY: slideAnim }]
+                        transform: [{ translateY: slideAnim }],
+                        paddingTop: insets.top + (Platform.OS === 'ios' ? 60 : 80),
                     }
                 ]}
             >
@@ -266,13 +318,25 @@ export default function ProjectDetailsScreen() {
                     end={{ x: 1, y: 1 }}
                 >
                     <View style={styles.headerTop}>
-                        <Text style={styles.projectName}>{project.name}</Text>
-                        <TouchableOpacity
-                            style={styles.filterButton}
-                            onPress={() => setFilterModalVisible(true)}
-                        >
-                            <Filter size={18} color="#fc350b" />
-                        </TouchableOpacity>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.projectName}>{project.name}</Text>
+                        </View>
+                        <View style={styles.headerTopActions}>
+                            {project.created_by === user?.id && (
+                                <TouchableOpacity
+                                    style={[styles.headerOptionButton, { backgroundColor: colors.secondary + '15' }]}
+                                    onPress={handleDeleteProject}
+                                >
+                                    <Trash2 size={18} color={colors.secondary} />
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={styles.filterButton}
+                                onPress={() => setFilterModalVisible(true)}
+                            >
+                                <Filter size={18} color="#fc350b" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {project.description && (
@@ -299,6 +363,67 @@ export default function ProjectDetailsScreen() {
 
                     <View style={[styles.progressBar, { backgroundColor: colors.cardDark }]}>
                         <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${(doneCount / (tasks.length || 1)) * 100}%` }]} />
+                    </View>
+
+                    {/* Project Members Section */}
+                    <View style={styles.membersSection}>
+                        <View style={styles.membersHeader}>
+                            <View style={styles.membersTitleContainer}>
+                                <Users size={16} color={colors.primary} />
+                                <Text style={[styles.membersTitle, { color: colors.text }]}>Members</Text>
+                                <View style={[styles.memberBadge, { backgroundColor: colors.primary + '15' }]}>
+                                    <Text style={[styles.memberBadgeText, { color: colors.primary }]}>{projectMembers.length}</Text>
+                                </View>
+                            </View>
+                            {project.created_by === user?.id && (
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <TouchableOpacity
+                                        style={[styles.addMemberButton, { backgroundColor: colors.primary + '15' }]}
+                                        onPress={() => router.push(`/project/${id}/members`)}
+                                    >
+                                        <ArrowRight size={16} color={colors.primary} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.addMemberButton, { backgroundColor: colors.primary + '15' }]}
+                                        onPress={() => setMemberModalVisible(true)}
+                                    >
+                                        <UserPlus size={16} color={colors.primary} />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.membersScroll}
+                        >
+                            {projectMembers.map((member) => (
+                                <View key={member.id} style={styles.memberAvatarContainer}>
+                                    <LinearGradient
+                                        colors={[colors.primary, colors.secondary]}
+                                        style={styles.memberAvatar}
+                                    >
+                                        <Text style={styles.memberAvatarText}>
+                                            {member.user.name.charAt(0).toUpperCase()}
+                                        </Text>
+                                    </LinearGradient>
+                                    <Text style={[styles.memberSmallName, { color: colors.textSecondary }]} numberOfLines={1}>
+                                        {member.user.name.split(' ')[0]}
+                                    </Text>
+                                    {project.created_by === user?.id && (
+                                        <TouchableOpacity
+                                            style={styles.removeMemberBadge}
+                                            onPress={() => handleRemoveMember(member.user_id)}
+                                        >
+                                            <X size={8} color={colors.textLight} />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            ))}
+                            {projectMembers.length === 0 && (
+                                <Text style={[styles.noMembersText, { color: colors.textSecondary }]}>No members assigned</Text>
+                            )}
+                        </ScrollView>
                     </View>
                 </LinearGradient>
             </Animated.View>
@@ -353,7 +478,7 @@ export default function ProjectDetailsScreen() {
             >
                 <TouchableOpacity
                     style={[styles.fab, { shadowColor: colors.primary }]}
-                    onPress={() => setModalVisible(true)}
+                    onPress={() => router.push({ pathname: '/task/create', params: { projectId: id } })}
                     activeOpacity={0.8}
                 >
                     <LinearGradient
@@ -365,111 +490,7 @@ export default function ProjectDetailsScreen() {
                 </TouchableOpacity>
             </Animated.View>
 
-            {/* Create Task Modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
-                    <Animated.View
-                        style={[
-                            styles.modalContent,
-                            {
-                                backgroundColor: colors.modalBackground,
-                                shadowColor: colors.shadow,
-                                transform: [{
-                                    scale: scaleAnim
-                                }]
-                            }
-                        ]}
-                    >
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>New Task</Text>
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setModalVisible(false)}
-                            >
-                                <X size={20} color="#a0430a" />
-                            </TouchableOpacity>
-                        </View>
 
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Title</Text>
-                            <View style={styles.inputWrapper}>
-                                <TextInput
-                                    style={[styles.input, { color: colors.text }]}
-                                    value={newTaskTitle}
-                                    onChangeText={setNewTaskTitle}
-                                    placeholder="What needs to be done?"
-                                    placeholderTextColor={colors.textSecondary + '60'}
-                                    autoFocus
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Description</Text>
-                            <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-                                <TextInput
-                                    style={[styles.input, styles.textArea, { color: colors.text }]}
-                                    value={newTaskDesc}
-                                    onChangeText={setNewTaskDesc}
-                                    placeholder="Add details..."
-                                    placeholderTextColor={colors.textSecondary + '60'}
-                                    multiline
-                                    numberOfLines={3}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Priority</Text>
-                            <View style={styles.prioritySelector}>
-                                {(['LOW', 'MEDIUM', 'HIGH'] as const).map((p) => (
-                                    <TouchableOpacity
-                                        key={p}
-                                        style={[
-                                            styles.priorityOption,
-                                            newTaskPriority === p && {
-                                                backgroundColor: getPriorityColor(p),
-                                                borderColor: getPriorityColor(p)
-                                            }
-                                        ]}
-                                        onPress={() => setNewTaskPriority(p)}
-                                    >
-                                        <Text style={[
-                                            styles.priorityOptionText,
-                                            { color: colors.text },
-                                            newTaskPriority === p && { color: colors.textLight }
-                                        ]}>
-                                            {p}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.createButton, { shadowColor: colors.primary }]}
-                            onPress={handleCreateTask}
-                            disabled={creating}
-                        >
-                            <LinearGradient
-                                colors={creating ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
-                                style={styles.createButtonGradient}
-                            >
-                                {creating ? (
-                                    <ActivityIndicator color={colors.textLight} />
-                                ) : (
-                                    <Text style={[styles.createButtonText, { color: colors.textLight }]}>Create Task</Text>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </Animated.View>
-                </BlurView>
-            </Modal>
 
             {/* Filter Modal */}
             <Modal
@@ -533,6 +554,73 @@ export default function ProjectDetailsScreen() {
                     </Animated.View>
                 </BlurView>
             </Modal>
+
+            {/* Add Member Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={memberModalVisible}
+                onRequestClose={() => setMemberModalVisible(false)}
+            >
+                <BlurView intensity={20} tint={theme} style={styles.modalOverlay}>
+                    <Animated.View
+                        style={[
+                            styles.modalContent,
+                            {
+                                backgroundColor: colors.modalBackground,
+                                shadowColor: colors.shadow,
+                                transform: [{
+                                    scale: scaleAnim
+                                }]
+                            }
+                        ]}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Add Project Member</Text>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setMemberModalVisible(false)}
+                            >
+                                <X size={20} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <FlatList
+                            data={workspaceMembers.filter(wm => !projectMembers.some(pm => pm.user_id === wm.userId))}
+                            keyExtractor={(item) => item.id}
+                            style={{ maxHeight: 400 }}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.memberSelectItem, { borderColor: colors.border }]}
+                                    onPress={() => handleAddMember(item.userId)}
+                                    disabled={addingMember}
+                                >
+                                    <View style={styles.memberSelectInfo}>
+                                        <LinearGradient
+                                            colors={[colors.primary, colors.secondary]}
+                                            style={styles.memberSelectAvatar}
+                                        >
+                                            <Text style={styles.memberAvatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+                                        </LinearGradient>
+                                        <View>
+                                            <Text style={[styles.memberSelectName, { color: colors.text }]}>{item.name}</Text>
+                                            <Text style={[styles.memberSelectEmail, { color: colors.textSecondary }]}>{item.email}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={[styles.addBadge, { backgroundColor: colors.primary + '15' }]}>
+                                        {addingMember ? <ActivityIndicator size="small" color={colors.primary} /> : <Plus size={16} color={colors.primary} />}
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={
+                                <View style={styles.emptyMembersSelect}>
+                                    <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>All workspace members are already in this project</Text>
+                                </View>
+                            }
+                        />
+                    </Animated.View>
+                </BlurView>
+            </Modal>
         </View>
     );
 }
@@ -579,6 +667,20 @@ const styles = StyleSheet.create({
         color: '#a0430a',
         fontFamily: 'Inter_700Bold',
         flex: 1,
+    },
+    headerTopActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    headerOptionButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fc350b30',
     },
     filterButton: {
         width: 40,
@@ -953,5 +1055,137 @@ const styles = StyleSheet.create({
         color: '#a0430a',
         fontFamily: 'Inter_600SemiBold',
         marginRight: 8,
+    },
+    membersSection: {
+        marginTop: 20,
+        paddingTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: '#fc350b20',
+    },
+    membersHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    membersTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    membersTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        fontFamily: 'Inter_600SemiBold',
+    },
+    memberBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    memberBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    addMemberButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    membersScroll: {
+        paddingRight: 20,
+        gap: 15,
+    },
+    memberAvatarContainer: {
+        alignItems: 'center',
+        width: 50,
+    },
+    memberAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    memberAvatarText: {
+        color: '#fef1e1',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    memberSmallName: {
+        fontSize: 9,
+        fontFamily: 'Inter_500Medium',
+        textAlign: 'center',
+    },
+    removeMemberBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#fc350b',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fef1e1',
+    },
+    noMembersText: {
+        fontSize: 12,
+        fontStyle: 'italic',
+        opacity: 0.7,
+    },
+    memberSelectItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 10,
+    },
+    memberSelectInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    memberSelectAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    memberSelectName: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    memberSelectEmail: {
+        fontSize: 12,
+        opacity: 0.7,
+    },
+    addBadge: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyMembersSelect: {
+        padding: 20,
+    },
+    errorText: {
+        fontSize: 16,
+        textAlign: 'center',
+        fontFamily: 'Inter_500Medium',
+        lineHeight: 24,
+    },
+    backButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 12,
     },
 });
